@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='test1.pdf'
+source_file='844_download.pdf'
 
 # Wheel diameter in mm - this may be used to correct the speed calculated by the
 # QDP software which uses a figure embedded in the logger (which will be in inches)
