@@ -1,2 +1,4 @@
 PyPDF2
+PyPDF4
 pypdf
+xlsxwriter

@@ -20,3 +20,7 @@ skip_list_words = ["Quantum Desktop Playback",
                    "Report Date",
                    "Locomotive",
                    'TIME']
+
+# Workbook name - including path if required
+workbook_name='qdp_output.xlsx'
+worksheet_name="Data Extract"
