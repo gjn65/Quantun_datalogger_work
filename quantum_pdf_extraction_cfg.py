@@ -21,6 +21,6 @@ skip_list_words = ["Quantum Desktop Playback",
                    "Locomotive",
                    'TIME']
 
-# Workbook name - including path if required
-workbook_name='qdp_output.xlsx'
+# Workbook name - including path if required - no xlsx suffix, that is added by the code
+workbook_name='qdp_output'
 worksheet_name="Data Extract"

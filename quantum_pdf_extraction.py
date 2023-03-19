@@ -26,6 +26,7 @@ The cfg file contains all the data required to drive the application operation.
 import pprint
 from pypdf import PdfReader
 import xlsxwriter
+from datetime import datetime
 import quantum_pdf_extraction_cfg as cfg
 
 pp=pprint.PrettyPrinter(indent=4)
@@ -33,18 +34,29 @@ pp=pprint.PrettyPrinter(indent=4)
 def main():
 
     loco_name=""
-    wb=xlsxwriter.Workbook(cfg.workbook_name)
-    ws=wb.add_worksheet(cfg.worksheet_name)
-    ws_ann=wb.add_worksheet(("Events"))
-    ws_row=write_header(wb,ws)
-    ws_col=0
-    ws_row_ann=0
+    #wb=xlsxwriter.Workbook(cfg.workbook_name)
+    #ws=wb.add_worksheet(cfg.worksheet_name)
+    #ws_ann=wb.add_worksheet(("Events"))
+    #ws_row=write_header(wb,ws)
+    #ws_col=0
+    #ws_row_ann=0
 
     reader=PdfReader(cfg.source_file)
     pages=len(reader.pages)
     # Iterate through each page
+    old_page=0
     for page in range(pages):
         print("Processing page "+str(page))
+        if page == 1 and old_page ==0:
+            now=datetime.now()
+            timestamp=datetime.now().strftime("%Y%m%d%H%M")
+            wb=xlsxwriter.Workbook(cfg.workbook_name+" "+loco_name+" "+timestamp+".xlsx")
+            ws=wb.add_worksheet(cfg.worksheet_name)
+            ws_ann=wb.add_worksheet(("Events"))
+            ws_row=write_header(wb,ws,loco_name)
+            ws_col=0
+            ws_row_ann=0
+        old_page=page
         lines=reader.pages[page].extract_text().split('\n')
         # Iterate through each line for this page
         for line in lines:
@@ -56,9 +68,6 @@ def main():
                 if "Locomotive Number" in line:
                     words=line.split()
                     loco_name=words[-1]
-                    loco_fmt=wb.add_format({'font_size':12,'bold':True})
-                    ws.write(ws_row,0,"Locomotive - "+loco_name,loco_fmt)
-                    ws_row+=1
                 if cfg.speed_adjustment_factor == 0:
                     if "Circumference" in line and "Diameter" in line:
                         words=line.split()
@@ -170,7 +179,7 @@ def convert_date(us_date):
     aus_date="{:0>4d}/{:0>2d}/{:0>2d}".format(int(parts[2]),int(parts[0]),int(parts[1]))
     return aus_date
 
-def write_header(wb,ws):
+def write_header(wb,ws,loco_name):
 
     wb.set_size(1920,1080)
     lalign=wb.add_format({'align':'left'})
@@ -185,10 +194,10 @@ def write_header(wb,ws):
 
     header_format=wb.add_format({'font_size':14,'bold':True})
 
-    ws.freeze_panes(4,0)
+    ws.freeze_panes(3,0)
 
     ''' Write header line to the worksheet. Return the next row number (0 based) '''
-    ws.write(0,0,"Data extract from Quantum Data Recorder",header_format)
+    ws.write(0,0,"Data extract from Quantum Data Recorder : "+loco_name,header_format)
     ws.write(1,0,"Date")
     ws.write(1,1,"Time")
     ws.write(1,2,"Kilometres")
