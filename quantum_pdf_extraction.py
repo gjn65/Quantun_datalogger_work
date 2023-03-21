@@ -9,7 +9,7 @@ required using tags (or select the entire file) then printing it to a PDF file
 When setting up the printed page, select ALL variables logged - this code will weed out those
 that are not required.
 
-Th eheader page of the PDF report is used ot make adjustments to the wheel speed from that
+Th header page of the PDF report is used ot make adjustments to the wheel speed from that
 recorded in the data (which can be modified if the data is extracted using QDP but cannot if
 it's downloaded using the QRST code).
 
@@ -34,23 +34,17 @@ pp=pprint.PrettyPrinter(indent=4)
 def main():
 
     loco_name=""
-    #wb=xlsxwriter.Workbook(cfg.workbook_name)
-    #ws=wb.add_worksheet(cfg.worksheet_name)
-    #ws_ann=wb.add_worksheet(("Events"))
-    #ws_row=write_header(wb,ws)
-    #ws_col=0
-    #ws_row_ann=0
+    start_epoch=get_epoch(cfg.start_timestamp)
+    end_epoch=get_epoch(cfg.end_timestamp)
 
     reader=PdfReader(cfg.source_file)
     pages=len(reader.pages)
     # Iterate through each page
     old_page=0
     for page in range(pages):
-        print("Processing page "+str(page))
+        print("Processing page "+str(page+1)+" of "+str(pages))
         if page == 1 and old_page ==0:
-            now=datetime.now()
-            timestamp=datetime.now().strftime("%Y%m%d%H%M")
-            wb=xlsxwriter.Workbook(cfg.workbook_name+" "+loco_name+" "+timestamp+".xlsx")
+            wb=xlsxwriter.Workbook(cfg.workbook_name+" "+loco_name+" "+datetime.now().strftime("%Y%m%d%H%M")+".xlsx")
             ws=wb.add_worksheet(cfg.worksheet_name)
             ws_ann=wb.add_worksheet(("Events"))
             ws_row=write_header(wb,ws,loco_name)
@@ -86,6 +80,14 @@ def main():
             # for example - recorder power up, laptop connection etc.
             if line[0].isnumeric() == False:
                 # Handle annotations
+                # Extract date and time - last word in string in format HH:MM:SS-mm/dd/yyyy
+                words=line.split()
+                record_date=convert_date(words[-1])
+                record_time=words[-2].replace("-","")
+                record_epoch=get_epoch(record_date+" "+record_time)
+                if start_epoch > 0 and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
+                    continue
+
                 ws.write(ws_row,0,line)
                 ws_row+=1
                 ws_ann.write(ws_row_ann,0,line)
@@ -107,18 +109,22 @@ def main():
             # references
             words=line.split(maxsplit=8)
             #pp.pprint(words)
+            record_date=convert_date(words[1])
+            record_time=words[0].replace("-","")
+            record_epoch=get_epoch(record_date+" "+record_time)
+            if start_epoch > 0 and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
+                continue
             ws_col=0
-            ws.write_string(ws_row,ws_col,convert_date(words[1]))       # AUS Date stamp
+            ws.write_string(ws_row,ws_col,record_date)       # AUS Date stamp
             ws_col+=1
-            ws.write_string(ws_row,ws_col,words[0].replace("-",""))     # Timestamp
+            ws.write_string(ws_row,ws_col,record_time)     # Timestamp
             ws_col+=1
             ws.write_string(ws_row,ws_col,"{:.2f}".format(float(words[2])*1.6))     # Mileage converteed to km units
             ws_col+=1
-            if int(words[3])==0:    # Speed, convert to kph and apply wheel diameter adjustment factor
-                x=0
-            else:
-                x=round(int(words[3])*1.6*cfg.speed_adjustment_factor)
-            ws.write_number(ws_row,ws_col,x)
+            # Speed, converted to kph and adjusted according to the difference between the real wheel diameter
+            # and the diameter reported by the QDP software. NB: The reported wheel diameter can be set when
+            # downloading the data via QDP but not when downloading via the QRST software.
+            ws.write_number(ws_row,ws_col,round(int(words[3])*1.6*cfg.speed_adjustment_factor))
             ws_col+=1
             ws.write_number(ws_row,ws_col,int(words[4]))        # TMC
             ws_col+=1
@@ -132,7 +138,7 @@ def main():
             # So if this is the case we need to split word[6] into the IBRK and TP components AND
             # we need to amalgamate the 2 flag vars onto 1
             if len(words[6])>2 and words[6][-2:]=="ID":
-                # This is one of the wierd cases
+                # This is one of the weird cases
                 ibrk=words[6][:-2]
                 tp=words[6][-2:]
                 ws.write_number(ws_row,ws_col,int(ibrk))        # Independent brake pressure
@@ -228,6 +234,16 @@ def skip_line_found(line):
         if word in line:
             return True
     return False
+
+
+def get_epoch(timestamp):
+    ''' Take string in format yyyy/mm/dd hh:mm:ss and return epoch seconds (or 0 if flag is false) '''
+    if cfg.between_dates==False:
+        return 0
+    d = datetime.strptime(timestamp,"%Y/%m/%d %H:%M:%S")
+    epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
+    return int(epoch)
+
 
 if __name__ == '__main__':
     main()

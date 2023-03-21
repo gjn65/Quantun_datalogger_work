@@ -22,5 +22,14 @@ skip_list_words = ["Quantum Desktop Playback",
                    'TIME']
 
 # Workbook name - including path if required - no xlsx suffix, that is added by the code
-workbook_name='qdp_output'
+workbook_name='output/qdp_output'
 worksheet_name="Data Extract"
+
+# Required date range.
+# Define the start and end date/times as yyyy/mm/dd hh:mm:ss
+# Only records between these timestamps will be reported.
+# The between_dates flag is set to True to activate this test, or False to ignore it.
+between_dates=False
+start_timestamp="2023/03/10 14:00:00"
+end_timestamp="2023/03/10 14:59:59"
+
