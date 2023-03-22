@@ -1,6 +1,8 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
 source_file='844_download.pdf'
+#source_file='sample1.pdf'
+#source_file='sample2.pdf'
 
 # Wheel diameter in mm - this may be used to correct the speed calculated by the
 # QDP software which uses a figure embedded in the logger (which will be in inches)
@@ -33,3 +35,5 @@ between_dates=False
 start_timestamp="2023/03/10 14:00:00"
 end_timestamp="2023/03/10 14:59:59"
 
+
+tp_translations={"F":"Fault","I":"Idle","D":"Dynamic","S":"Stop"}

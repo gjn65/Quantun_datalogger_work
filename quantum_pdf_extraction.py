@@ -18,11 +18,16 @@ All logger data is in imperial units so we need to convert to metric.
 The cfg file contains all the data required to drive the application operation.
 
 
+							Maintenance History
+							
+March 2023	GJN	Initial Creation
+2023/03/23  GJN Added Throttle position translation for text fields
+                Use RE to solve issue of 2 character TP values stuffing up line splitting.
 
 
 '''
 
-
+import re
 import pprint
 from pypdf import PdfReader
 import xlsxwriter
@@ -107,6 +112,13 @@ def main():
             # The rest of the fields are either 1 or 0 for ON or OFF but the PDF extractor
             # messes up the separators so we will squeeze the spaces out then use positional
             # references
+            #
+            # NOTE: - If the Throttle Position value is 2 letters (currently ID has been found as a case)
+            #         the PDF parser will concatenate that with the preceding field (the IBRK value)
+            #         This will stuff up the splitting by words so we will search for the string ID preceded
+            #         by a digit and if this is found then we will replace "ID" with " I"
+            if re.search("[0-9]ID",line) != None:
+                line=line.replace("ID"," I")
             words=line.split(maxsplit=8)
             #pp.pprint(words)
             record_date=convert_date(words[1])
@@ -119,7 +131,7 @@ def main():
             ws_col+=1
             ws.write_string(ws_row,ws_col,record_time)     # Timestamp
             ws_col+=1
-            ws.write_string(ws_row,ws_col,"{:.2f}".format(float(words[2])*1.6))     # Mileage converteed to km units
+            ws.write(ws_row,ws_col,"{:.2f}".format(float(words[2])*1.6))     # Mileage converted to km units
             ws_col+=1
             # Speed, converted to kph and adjusted according to the difference between the real wheel diameter
             # and the diameter reported by the QDP software. NB: The reported wheel diameter can be set when
@@ -130,29 +142,11 @@ def main():
             ws_col+=1
             ws.write_number(ws_row,ws_col,int(words[5]))        # Brake pipe pressure
             ws_col+=1
-
-            # This gets messy, some records show the Throttle Position as 'ID'
-            # When that happens, the PDF reder concatenates that value to the inpendent brake pressure
-            # (eg. "53ID") and this then stuffs up the parsing of the following flags as they end up
-            # in 2 variables, not 1.
-            # So if this is the case we need to split word[6] into the IBRK and TP components AND
-            # we need to amalgamate the 2 flag vars onto 1
-            if len(words[6])>2 and words[6][-2:]=="ID":
-                # This is one of the weird cases
-                ibrk=words[6][:-2]
-                tp=words[6][-2:]
-                ws.write_number(ws_row,ws_col,int(ibrk))        # Independent brake pressure
-                ws_col+=1
-                ws.write(ws_row,ws_col,tp)             # Throttle position
-                ws_col+=1
-                flags=words[7].replace(" ","") + words[-1].replace(" ","")
-
-            else:
-                ws.write_number(ws_row,ws_col,int(words[6]))        # Independent brake pressure
-                ws_col+=1
-                ws.write(ws_row,ws_col,words[7])             # Throttle position
-                ws_col+=1
-                flags=words[-1].replace(" ","")
+            ws.write_number(ws_row,ws_col,int(words[6]))        # Independent brake pressure
+            ws_col+=1
+            ws.write(ws_row,ws_col,translate_tp(words[7]))             # Throttle position
+            ws_col+=1
+            flags=words[-1].replace(" ","")
 
             #pp.pprint(flags)
             # Flags are either 1 or 0 for ON or OFF
@@ -175,7 +169,14 @@ def main():
 
     wb.close()
 
-
+def translate_tp(tp):
+    ''' take a throtle position. If it's a number then return that number.
+        If it's a letter then returnn the corrsponding text '''
+    if tp.isnumeric():
+        return tp
+    if tp.upper() in cfg.tp_translations.keys():
+        return cfg.tp_translations[tp.upper()]
+    return tp+" (Unknown)"
 
 def convert_date(us_date):
     ''' Convert US formatted date to AUS formatted date '''
@@ -189,9 +190,9 @@ def write_header(wb,ws,loco_name):
 
     wb.set_size(1920,1080)
     lalign=wb.add_format({'align':'left'})
-    ws.set_column('A:C',15,lalign)
+    ws.set_column('A:B',15,lalign)
     ralign=wb.add_format({'align':'right'})
-    ws.set_column('D:H',10,ralign)
+    ws.set_column('C:H',10,ralign)
     calign=wb.add_format({'align':'center'})
     ws.set_column('I:S',10,calign)
 
@@ -208,9 +209,9 @@ def write_header(wb,ws,loco_name):
     ws.write(1,1,"Time")
     ws.write(1,2,"Kilometres")
     ws.write(1,3,"Speed (kph)")
-    ws.write(1,4,"TMC")
-    ws.write(1,5,"ABrk")
-    ws.write(1,6,"IBrk")
+    ws.write(1,4,"TMC (A)")
+    ws.write(1,5,"ABrk (psi)")
+    ws.write(1,6,"IBrk (psi)")
     ws.write(1,7,"Throttle")
     ws.write(1,8,"Reverse")
     ws.write(1,9,"EIE")
