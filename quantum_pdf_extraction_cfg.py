@@ -35,5 +35,35 @@ between_dates=False
 start_timestamp="2023/03/10 14:00:00"
 end_timestamp="2023/03/10 14:59:59"
 
+# This dictionary translates the throttle position value to a meaningful text.
+# Note that Idle is stored in the logger output as "ID" but I modify it to "I"
+# for parsing reasons
+tp_translations={"F":"Fault","I":"Idle","D":"Dyn","S":"Stop"}
 
-tp_translations={"F":"Fault","I":"Idle","D":"Dynamic","S":"Stop"}
+# Column headers for worksheet
+# This is a list of tuples, each tuple has the column header text and a boolean flag indicating
+# whether or not the column is visible
+headers=[("Date",True),
+         ("Time",True),
+         ("Kilometres",True),
+         ("Speed (kph)",True),
+         ("TMC (A)",True),
+         ("ABrk (psi)",True),
+         ("IBrk (psi)",True),
+         ("Throttle",True),
+         ("Reverse",True),
+         ("EIE",False),
+         ("PCS",True),
+         ("Light (S)",True),
+         ("Forward",True),
+         ("Light (L)",True),
+         ("Horn",True),
+         ("DS1",False),
+         ("DS2",False),
+         ("VS Ack",False),
+         ("Axle Drive",False),
+         ]
+
+# Worksheet protection string
+protect_string="3801"
+protection_mode={'select_locked_cells':True,"select_unlocked_cells":True,"sort":True,"autofilter":True}
