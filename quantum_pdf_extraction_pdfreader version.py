@@ -31,24 +31,17 @@ March 2023	GJN	Initial Creation
                 Protect code is written but not implemented as I'm still working out
                 how to allow users to filter protected data...
                 Add progress bar.
-
-2023/03/27  GJN Stop using PDFReader as it was munging the data in cases where the TMC exceeded 3 digits
-                or the Throttle Position was 2 characters.
-                Now we use pdfplumber instead to extract the PDF data
 '''
 
 from progress.bar import Bar
+import re
 import pprint
-#from pypdf import PdfReader
+from pypdf import PdfReader
 import xlsxwriter
 from datetime import datetime
-import pdfplumber
 import quantum_pdf_extraction_cfg as cfg
 
-
-
-
-
+pp=pprint.PrettyPrinter(indent=4)
 
 def main():
 
@@ -56,8 +49,8 @@ def main():
     start_epoch=get_epoch(cfg.start_timestamp)
     end_epoch=get_epoch(cfg.end_timestamp)
 
-    pdf=pdfplumber.open(cfg.source_file)
-    pages=len(pdf.pages)
+    reader=PdfReader(cfg.source_file)
+    pages=len(reader.pages)
     wb_name=""
     # Iterate through each page
     old_page=0
@@ -66,18 +59,13 @@ def main():
             #print("Processing page "+str(page+1)+" of "+str(pages))
             if page == 1 and old_page ==0:
                 wb_name=cfg.workbook_name+" "+loco_name+" "+datetime.now().strftime("%Y%m%d%H%M")+".xlsx"
-                wb=xlsxwriter.Workbook(wb_name,{'strings_to_numbers':True})
+                wb=xlsxwriter.Workbook(wb_name)
                 ws=wb.add_worksheet(cfg.worksheet_name)
-                lalign=wb.add_format({'align':'left'})
                 ws_ann=wb.add_worksheet("Logger Events")
                 ws_row=write_header(wb,ws,"Data extract from Quantum Data Recorder",loco_name)
-                ws_row_ann=write_header_ann(wb,ws_ann,"Data extract from Quantum Data Recorder",loco_name)
+                ws_row_ann=0
             old_page=page
-
-            page_contents = pdf.pages[page]
-            text = page_contents.extract_text()
-            lines = text.split('\n')
-
+            lines=reader.pages[page].extract_text().split('\n')
             # Iterate through each line for this page
             for line in lines:
                 if len(line) == 0:
@@ -114,23 +102,38 @@ def main():
                     if start_epoch > 0 and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
                         continue
 
-                    ws.write(ws_row,0,record_date)
-                    ws.write(ws_row,1,record_time)
-                    ws.write(ws_row,2,' '.join(words[:-2]),lalign)
+                    ws.write(ws_row,0,line)
                     ws_row+=1
-                    ws_ann.write(ws_row_ann,0,record_date)
-                    ws_ann.write(ws_row_ann,1,record_time)
-                    ws_ann.write(ws_row_ann,2," ".join(words[:-2]))
+                    ws_ann.write(ws_row_ann,0,line)
                     ws_row_ann+=1
                     continue
 
                 # Split the line into words on whitespace
-                words=line.split()
+                # We want the first 8 fields separately:
+                # Time - has a dash appended
+                # Date - is in mm/dd/yyyy format
+                # Miles - 2 decimal places
+                # Speed - MPH?
+                # Traction motor current
+                # Brake pipe pressure
+                # Independent brake pressure
+                # Throttle notch (may be 'D')
+                # The rest of the fields are either 1 or 0 for ON or OFF but the PDF extractor
+                # messes up the separators so we will squeeze the spaces out then use positional
+                # references
+                #
+                # NOTE: - If the Throttle Position value is 2 letters (currently ID has been found as a case)
+                #         the PDF parser will concatenate that with the preceding field (the IBRK value)
+                #         This will stuff up the splitting by words so we will search for the string ID preceded
+                #         by a digit and if this is found then we will replace "ID" with " I"
+                if re.search("[0-9]ID", line) is not None:
+                    line=line.replace("ID"," I")
+                words=line.split(maxsplit=8)
                 #pp.pprint(words)
                 record_date=convert_date(words[1])
                 record_time=words[0].replace("-","")
                 record_epoch=get_epoch(record_date+" "+record_time)
-                if cfg.filter_dates and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
+                if start_epoch > 0 and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
                     continue
                 # Write record to spreadsheet
                 ws_row=write_record(ws,ws_row,words,record_date,record_time)
@@ -152,36 +155,12 @@ def hide_columns(ws,headers):
 def    write_record(ws,ws_row,words,record_date,record_time):
     ''' Write spreadsheet row, return updated row number '''
 
-
-    # Time - has a dash appended
-    # Date - is in mm/dd/yyyy format
-    # Miles - 2 decimal places
-    # Speed - MPH?
-    # Traction motor current
-    # Brake pipe pressure
-    # Independent brake pressure
-    # Throttle notch (may be 'D')
-
-    # Flags are either 1 or 0 for ON or OFF
-    # Reverser in reverse
-    # Engineer induced emergency
-    # Pressure control switch (set when the BP air drops below 45 psi)
-    # Headlight on - short end
-    # Reverser in forward
-    # Headlight on - long end
-    # Horn on
-    # Digital spare 1
-    # Digital spare 2
-    # Vigilance Control Alert acknowledge
-    # Axle drive type
-
     ws_col = 0
     ws.write_string(ws_row, ws_col, record_date)  # AUS Date stamp
     ws_col += 1
     ws.write_string(ws_row, ws_col, record_time)  # Timestamp
     ws_col += 1
-    #ws.write(ws_row, ws_col, "{:.2f}".format(float(words[2]) * 1.6))  # Mileage converted to km units
-    ws.write_number(ws_row, ws_col, float(words[2]) * 1.6)  # Mileage converted to km units
+    ws.write(ws_row, ws_col, "{:.2f}".format(float(words[2]) * 1.6))  # Mileage converted to km units
     ws_col += 1
     # Speed, converted to kph and adjusted according to the difference between the real wheel diameter
     # and the diameter reported by the QDP software. NB: The reported wheel diameter can be set when
@@ -194,31 +173,26 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     ws_col += 1
     ws.write_number(ws_row, ws_col, int(words[6]))  # Independent brake pressure
     ws_col += 1
-    ws.write(ws_row,ws_col,translate_tp(words[7]))
+    ws.write(ws_row, ws_col, translate_tp(words[7]))  # Throttle position
     ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[8] == "1" else "N")  # Reverse
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[9] == "1" else "N")  # EIE
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[10] == "1" else "N")  # Pressure control switch
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[11] == "1" else "N")  # Headlight on (short end)
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[12] == "1" else "N")  # Forward
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[13] == "1" else "N")  # Headlight on (long end)
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[14] == "1" else "N")  # Horn on
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[15] == "1" else "N")  # Digital Spare 1
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[16] == "1" else "N")  # Digital Spare 2
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[17] == "1" else "N")  # VC alert acknowledge
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[18] == "1" else "N")  # Axle Drive type
-    ws_col += 1
+    flags = words[-1].replace(" ", "")
 
+    # pp.pprint(flags)
+    # Flags are either 1 or 0 for ON or OFF
+    # Reverser in reverse
+    # Engineer induced emergency
+    # Pressure control switch (set when the BP air drops below 45 psi)
+    # Headlight on - short end
+    # Reverser in forward
+    # Headlight on - long end
+    # Horn on
+    # Digital spare 1
+    # Digital spare 2
+    # Vigilance Control Alert acknowledge
+    # Axle drive type
+    for flag in flags:
+        ws.write(ws_row, ws_col, "Y" if flag == "1" else "N")  # Throttle position
+        ws_col += 1
 
     ws_row += 1
     return ws_row
@@ -245,13 +219,10 @@ def write_header(wb,ws,text,loco_name):
     wb.set_size(1920,1080)
     lalign=wb.add_format({'align':'left'})
     ws.set_column('A:B',15,lalign)
-    numfmt=wb.add_format({'num_format':'0.00'})
-    ws.set_column('C:C',10,numfmt)
     ralign=wb.add_format({'align':'right'})
-    ws.set_column('D:H',10,ralign)
+    ws.set_column('C:H',10,ralign)
     calign=wb.add_format({'align':'center'})
     ws.set_column('I:S',10,calign)
-    ws.set_column('T:T',20,lalign)
 
     calign_b=wb.add_format({'align':'center','bold':True})
     ws.set_row(1,None,calign_b)
@@ -267,18 +238,6 @@ def write_header(wb,ws,text,loco_name):
         ws.write(1,column,record[0])
     return 3
 
-
-def write_header_ann(wb,ws,text,loco_name):
-
-    lalign=wb.add_format({'align':'left'})
-    ws.set_column('A:B',15,lalign)
-    ws.set_column('C:C',100,lalign)
-    header_format_ann=wb.add_format({'font_size':14,'bold':True})
-    ws.freeze_panes(3,0)
-    ''' Write header line to the worksheet. Return the next row number (0 based) '''
-    ws.write(0,0,text+" : "+loco_name,header_format_ann)
-    return 3
-
 def skip_line_found(line):
     '''
         Search for existence of skip_list word(s) in the passed line.
@@ -292,20 +251,11 @@ def skip_line_found(line):
 
 def get_epoch(timestamp):
     ''' Take string in format yyyy/mm/dd hh:mm:ss and return epoch seconds (or 0 if flag is false) '''
-    if not cfg.filter_dates:
+    if not cfg.between_dates:
         return 0
     d = datetime.strptime(timestamp,"%Y/%m/%d %H:%M:%S")
     epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
     return int(epoch)
-
-
-def isfloat(num):
-    try:
-        float(num)
-        return True
-    except ValueError:
-        return False
-
 
 
 if __name__ == '__main__':

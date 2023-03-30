@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='844_download.pdf'
+source_file='input files/20230323 Test Train 2.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
@@ -31,14 +31,14 @@ worksheet_name="Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-between_dates=False
-start_timestamp="2023/03/10 14:00:00"
-end_timestamp="2023/03/10 14:59:59"
+filter_dates=True
+start_timestamp="2023/03/23 14:00:00"
+end_timestamp="2023/03/23 23:59:59"
 
 # This dictionary translates the throttle position value to a meaningful text.
 # Note that Idle is stored in the logger output as "ID" but I modify it to "I"
 # for parsing reasons
-tp_translations={"F":"Fault","I":"Idle","D":"Dyn","S":"Stop"}
+tp_translations={"F":"Fault","I":"Idle","ID":"Idle","D":"Dyn","S":"Stop"}
 
 # Column headers for worksheet
 # This is a list of tuples, each tuple has the column header text and a boolean flag indicating
