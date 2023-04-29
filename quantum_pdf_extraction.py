@@ -1,7 +1,7 @@
 #!/Library/Frameworks/Python.framework/Versions/3.10/bin/python3.10
 
 
-'''
+"""
 
 Quantum Desktop Playback - data reporter
 
@@ -16,7 +16,7 @@ The header page of the PDF report is used ot make adjustments to the wheel speed
 recorded in the data (which can be modified if the data is extracted using QDP but cannot if
 it's downloaded using the QRST code).
 
-All logger data is in imperial units so we need to convert to metric.
+All logger data is in imperial units, so we need to convert to metric.
 
 The cfg file contains all the data required to drive the application operation.
 
@@ -35,11 +35,10 @@ March 2023	GJN	Initial Creation
 2023/03/27  GJN Stop using PDFReader as it was munging the data in cases where the TMC exceeded 3 digits
                 or the Throttle Position was 2 characters.
                 Now we use pdfplumber instead to extract the PDF data
-'''
+"""
 
 from progress.bar import Bar
-import pprint
-#from pypdf import PdfReader
+#import pprint
 import xlsxwriter
 from datetime import datetime
 import pdfplumber
@@ -102,7 +101,7 @@ def main():
                 if skip_line_found(line):
                     continue
 
-                # If 1st character in the line is non numeric we treat the line as an annotation
+                # If 1st character in the line is non-numeric we treat the line as an annotation
                 # for example - recorder power up, laptop connection etc.
                 if not line[0].isnumeric():
                     # Handle annotations
@@ -145,12 +144,12 @@ def main():
 def hide_columns(ws,headers):
     """ Hide any column with False in the header tuple """
     for column, record in enumerate(headers):
-        if record[1]==False:
+        if not record[1]:
             ws.set_column(column,column,None,None,{'hidden':True})
 
 
 def    write_record(ws,ws_row,words,record_date,record_time):
-    ''' Write spreadsheet row, return updated row number '''
+    """ Write spreadsheet row, return updated row number """
 
 
     # Time - has a dash appended
@@ -160,7 +159,7 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     # Traction motor current
     # Brake pipe pressure
     # Independent brake pressure
-    # Throttle notch (may be 'D')
+    # Throttle notch
 
     # Flags are either 1 or 0 for ON or OFF
     # Reverser in reverse
@@ -194,7 +193,7 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     ws_col += 1
     ws.write_number(ws_row, ws_col, int(words[6]))  # Independent brake pressure
     ws_col += 1
-    ws.write(ws_row,ws_col,translate_tp(words[7]))
+    ws.write(ws_row,ws_col,translate_tp(words[7]))  # Throttle position
     ws_col += 1
     ws.write(ws_row, ws_col, "Y" if words[8] == "1" else "N")  # Reverse
     ws_col += 1
@@ -224,8 +223,8 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     return ws_row
 
 def translate_tp(tp):
-    ''' take a throtle position. If it's a number then return that number.
-        If it's a letter then returnn the corrsponding text '''
+    """ take a throtle position. If it's a number, then return that number.
+        If it's a letter then returnn the corrsponding text """
     if tp.isnumeric():
         return tp
     if tp.upper() in cfg.tp_translations.keys():
@@ -233,7 +232,7 @@ def translate_tp(tp):
     return tp+" (Unknown)"
 
 def convert_date(us_date):
-    ''' Convert US formatted date to AUS formatted date '''
+    """ Convert US formatted date to AUS formatted date """
     parts=us_date.split("/")
     if len(parts)!=3:
         return "invalid"
@@ -260,7 +259,7 @@ def write_header(wb,ws,text,loco_name):
 
     ws.freeze_panes(3,0)
 
-    ''' Write header line to the worksheet. Return the next row number (0 based) '''
+    """ Write header line to the worksheet. Return the next row number (0 based) """
     ws.write(0,0,text+" : "+loco_name,header_format)
 
     for column, record in enumerate(cfg.headers):
@@ -275,15 +274,15 @@ def write_header_ann(wb,ws,text,loco_name):
     ws.set_column('C:C',100,lalign)
     header_format_ann=wb.add_format({'font_size':14,'bold':True})
     ws.freeze_panes(3,0)
-    ''' Write header line to the worksheet. Return the next row number (0 based) '''
+    """ Write header line to the worksheet. Return the next row number (0 based) """
     ws.write(0,0,text+" : "+loco_name,header_format_ann)
     return 3
 
 def skip_line_found(line):
-    '''
-        Search for existence of skip_list word(s) in the passed line.
-        If found then return True, other wise return False
-    '''
+    """
+        Search for existence of skip_list word(s) in the line variable passed into the function.
+        If found then return True, otherwise return False
+    """
     for word in cfg.skip_list_words:
         if word in line:
             return True
@@ -291,7 +290,7 @@ def skip_line_found(line):
 
 
 def get_epoch(timestamp):
-    ''' Take string in format yyyy/mm/dd hh:mm:ss and return epoch seconds (or 0 if flag is false) '''
+    """ Take string in format yyyy/mm/dd hh:mm:ss and return epoch seconds (or 0 if flag is false) """
     if not cfg.filter_dates:
         return 0
     d = datetime.strptime(timestamp,"%Y/%m/%d %H:%M:%S")
