@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='input files/20230323 Test Train 2.pdf'
+source_file='input files/844_20230712_CT3.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
@@ -32,8 +32,8 @@ worksheet_name="Data Extract"
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
 filter_dates=True
-start_timestamp="2023/03/23 14:00:00"
-end_timestamp="2023/03/23 23:59:59"
+start_timestamp="2023/07/12 00:00:00"
+end_timestamp="2023/07/12 23:59:59"
 
 # This dictionary translates the throttle position value to a meaningful text.
 # Note that Idle is stored in the logger output as "ID" but I modify it to "I"
@@ -67,3 +67,5 @@ headers=[("Date",True),
 # Worksheet protection string
 protect_string="3801"
 protection_mode={'select_locked_cells':True,"select_unlocked_cells":True,"sort":True,"autofilter":True}
+
+

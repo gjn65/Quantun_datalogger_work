@@ -35,10 +35,24 @@ March 2023	GJN	Initial Creation
 2023/03/27  GJN Stop using PDFReader as it was munging the data in cases where the TMC exceeded 3 digits
                 or the Throttle Position was 2 characters.
                 Now we use pdfplumber instead to extract the PDF data
+
+2023/06/26  GJN For each annotation detected, print the time of the previous event and
+                the timestamp delta. This will help when diagnosing the power up events.
+
+2023/07/26  GJN When printing annotation events on event page, only print inter-event
+                details for Power related events.
+
+NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
+	Not used on our 830 or 930 class locomotives.
+
+
+
+
 """
 
 from progress.bar import Bar
-#import pprint
+import pprint
+import os
 import xlsxwriter
 from datetime import datetime
 import pdfplumber
@@ -51,10 +65,18 @@ import quantum_pdf_extraction_cfg as cfg
 
 def main():
 
+    pp = pprint.PrettyPrinter(indent=4)
+
     loco_name=""
     start_epoch=get_epoch(cfg.start_timestamp)
     end_epoch=get_epoch(cfg.end_timestamp)
 
+    if cfg.filter_dates:
+        print("Start from "+cfg.start_timestamp)
+        print("End at "+cfg.end_timestamp)
+    else:
+        print("No record filtering required")
+    print("Input = "+cfg.source_file)
     pdf=pdfplumber.open(cfg.source_file)
     pages=len(pdf.pages)
     wb_name=""
@@ -69,7 +91,8 @@ def main():
                 ws=wb.add_worksheet(cfg.worksheet_name)
                 lalign=wb.add_format({'align':'left'})
                 ws_ann=wb.add_worksheet("Logger Events")
-                ws_row=write_header(wb,ws,"Data extract from Quantum Data Recorder",loco_name)
+                parts=os.path.split(cfg.source_file)
+                ws_row=write_header(wb,ws,"Data extract from Quantum Data Recorder","Locomotive "+loco_name+". Source file "+parts[1])
                 ws_row_ann=write_header_ann(wb,ws_ann,"Data extract from Quantum Data Recorder",loco_name)
             old_page=page
 
@@ -117,17 +140,31 @@ def main():
                     ws.write(ws_row,1,record_time)
                     ws.write(ws_row,2,' '.join(words[:-2]),lalign)
                     ws_row+=1
+
+                    # Calculate offset between this annotation and the previous record.
+                    s = datetime.strptime(old_record_date + " " + old_record_time, "%Y/%m/%d %H:%M:%S")
+                    e = datetime.strptime(record_date + " " + record_time, "%Y/%m/%d %H:%M:%S")
+                    offset=str(e-s)
+
                     ws_ann.write(ws_row_ann,0,record_date)
                     ws_ann.write(ws_row_ann,1,record_time)
                     ws_ann.write(ws_row_ann,2," ".join(words[:-2]))
+                    # Only write inter-event interval for power related events.
+                    if words[0][:5] == 'Power':
+                        ws_ann.write(ws_row_ann,3,old_record_date)
+                        ws_ann.write(ws_row_ann,4,old_record_time)
+                        ws_ann.write(ws_row_ann,5,offset)
                     ws_row_ann+=1
+
                     continue
 
                 # Split the line into words on whitespace
                 words=line.split()
                 #pp.pprint(words)
                 record_date=convert_date(words[1])
+                old_record_date=record_date
                 record_time=words[0].replace("-","")
+                old_record_time=record_time
                 record_epoch=get_epoch(record_date+" "+record_time)
                 if cfg.filter_dates and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
                     continue
@@ -271,11 +308,19 @@ def write_header_ann(wb,ws,text,loco_name):
 
     lalign=wb.add_format({'align':'left'})
     ws.set_column('A:B',15,lalign)
-    ws.set_column('C:C',100,lalign)
+    ws.set_column('C:C',50,lalign)
+    ws.set_column('D:F',15,lalign)
+
     header_format_ann=wb.add_format({'font_size':14,'bold':True})
     ws.freeze_panes(3,0)
     """ Write header line to the worksheet. Return the next row number (0 based) """
     ws.write(0,0,text+" : "+loco_name,header_format_ann)
+    ws.write(1,0,"Event Date",header_format_ann)
+    ws.write(1,1,"Event Time",header_format_ann)
+    ws.write(1,2,"Event Type",header_format_ann)
+    ws.write(1,3,"Prev Evt Date",header_format_ann)
+    ws.write(1,4,"Prev Evt Time",header_format_ann)
+    ws.write(1,5,"Offset", header_format_ann)
     return 3
 
 def skip_line_found(line):
