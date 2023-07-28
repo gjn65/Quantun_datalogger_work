@@ -45,6 +45,13 @@ March 2023	GJN	Initial Creation
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
+	DYN refers to dynamic braking, te 830 class does not have this. The instances
+	seen in the data were caused by spurious voltages appearing on the dynamic brake
+	signal leads connected to the MU cable in 844's electrical cabinet. The presence
+	of +74VDC on these wires masked the correct throttlw settings. (Refer to the TP
+	truth table in the Quantum Speedometer manuai). We disconnected these 2 signal feeds
+	into the data logger in June/July 2023 to fix this problem
+
 
 
 
