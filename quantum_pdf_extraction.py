@@ -42,6 +42,9 @@ March 2023	GJN	Initial Creation
 2023/07/26  GJN When printing annotation events on event page, only print inter-event
                 details for Power related events.
 
+2023/08/31  GJN When writing to the Excel sheet, for the digital inputs, use a range function
+                rather than individual writes.
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -239,30 +242,10 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     ws_col += 1
     ws.write(ws_row,ws_col,translate_tp(words[7]))  # Throttle position
     ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[8] == "1" else "N")  # Reverse
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[9] == "1" else "N")  # EIE
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[10] == "1" else "N")  # Pressure control switch
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[11] == "1" else "N")  # Headlight on (short end)
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[12] == "1" else "N")  # Forward
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[13] == "1" else "N")  # Headlight on (long end)
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[14] == "1" else "N")  # Horn on
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[15] == "1" else "N")  # Digital Spare 1
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[16] == "1" else "N")  # Digital Spare 2
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[17] == "1" else "N")  # VC alert acknowledge
-    ws_col += 1
-    ws.write(ws_row, ws_col, "Y" if words[18] == "1" else "N")  # Axle Drive type
-    ws_col += 1
-
-
+    # Digital inputs follow
+    for i in range(8,18,1):
+        ws.write(ws_row, ws_col, "Y" if words[i] == "1" else "N")
+        ws_col += 1
     ws_row += 1
     return ws_row
 
