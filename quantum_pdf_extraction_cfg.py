@@ -1,11 +1,13 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='input files/844_20230712_CT3.pdf'
+source_file='input files/844_skewes_road_accident_20240110.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
 # Wheel diameter in mm - this may be used to correct the speed calculated by the
 # QDP software which uses a figure embedded in the logger (which will be in inches)
+# The combination of this value and the wheel diameter reported in the data logger
+# output is used to derive the speed adjustment factor.
 wheel_dia_actual_mm = 995
 
 # Speed adjustment factor.
@@ -14,6 +16,7 @@ wheel_dia_actual_mm = 995
 # The QDP wheel size is generally reported on Page 0 of the printout with a pair of lines as follows:
 # "Wheel size used by program" followed immediately by the line
 # Circumference = xxx.x Diameter = xx.x
+# NB: This will be calculated in the code, any non-zero setting made manually is overwritten.
 speed_adjustment_factor=0
 
 # Any line containing one of these phrases in omitted from processing
@@ -31,7 +34,7 @@ worksheet_name="Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-filter_dates=True
+filter_dates=False
 start_timestamp="2023/07/12 00:00:00"
 end_timestamp="2023/07/12 23:59:59"
 
