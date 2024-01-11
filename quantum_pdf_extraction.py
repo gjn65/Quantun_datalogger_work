@@ -45,6 +45,12 @@ March 2023	GJN	Initial Creation
 2023/08/31  GJN When writing to the Excel sheet, for the digital inputs, use a range function
                 rather than individual writes.
 
+2024/01/11  GJN Add ability to apply timeof day offset to logger records to compensate for
+                the loss of accuracy of the logger's RTC.
+                Offset is recorded in the configuration file.
+                Compensation and other run time modifiers are recorded in 3rd worksheet
+                as a matter of record
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -102,8 +108,25 @@ def main():
                 lalign=wb.add_format({'align':'left'})
                 ws_ann=wb.add_worksheet("Logger Events")
                 parts=os.path.split(cfg.source_file)
+                ws_modifiers=wb.add_worksheet("Runtime modifiers")
                 ws_row=write_header(wb,ws,"Data extract from Quantum Data Recorder","Locomotive "+loco_name+". Source file "+parts[1])
                 ws_row_ann=write_header_ann(wb,ws_ann,"Data extract from Quantum Data Recorder",loco_name)
+                ws_row_modifiers=write_header_modifiers(wb,ws_modifiers,"Runtime modifiers and events")
+                if cfg.filter_dates:
+                    ws_modifiers.write(ws_row_modifiers,0,"Records selected from "+cfg.start_timestamp+" to "+cfg.end_timestamp)
+                    ws_row_modifiers+=1
+                else:
+                    ws_modifiers.write(ws_row_modifiers,0,"No record filtering in place")
+                    ws_row_modifiers+=1
+                ws_modifiers.write(ws_row_modifiers,0,"Record timestamp offset applied is "+str(cfg.ts_adjustment)+" seconds")
+                ws_row_modifiers += 1
+                ws_modifiers.write(ws_row_modifiers, 0,
+                               "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
+                                   wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
+                                   cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
+                                   cfg.speed_adjustment_factor) + ".")
+                ws_row_modifiers += 1
+            #print("Input = " + cfg.source_file)
             old_page=page
 
             page_contents = pdf.pages[page]
@@ -142,6 +165,7 @@ def main():
                     words=line.split()
                     record_date=convert_date(words[-1])
                     record_time=words[-2].replace("-","")
+                    record_date,record_time=apply_time_adjustment(record_date,record_time)
                     record_epoch=get_epoch(record_date+" "+record_time)
                     if start_epoch > 0 and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
                         continue
@@ -172,8 +196,9 @@ def main():
                 words=line.split()
                 #pp.pprint(words)
                 record_date=convert_date(words[1])
-                old_record_date=record_date
                 record_time=words[0].replace("-","")
+                record_date, record_time = apply_time_adjustment(record_date, record_time)
+                old_record_date=record_date
                 old_record_time=record_time
                 record_epoch=get_epoch(record_date+" "+record_time)
                 if cfg.filter_dates and ((record_epoch < start_epoch) or (record_epoch > end_epoch)):
@@ -294,6 +319,16 @@ def write_header(wb,ws,text,loco_name):
     return 3
 
 
+def write_header_modifiers(wb,ws,text):
+
+    lalign=wb.add_format({'align':'left'})
+    ws.set_column('A:A',150,lalign)
+    header_format_modifiers=wb.add_format({'font_size':14,'bold':True})
+    ws.freeze_panes(3,0)
+    """ Write header line to the worksheet. Return the next row number (0 based) """
+    ws.write(0,0,text,header_format_modifiers)
+    return 3
+
 def write_header_ann(wb,ws,text,loco_name):
 
     lalign=wb.add_format({'align':'left'})
@@ -340,7 +375,20 @@ def isfloat(num):
     except ValueError:
         return False
 
-
+# The logger realtime clock can vary from the actual time so the timestamps
+# are not accurate. This function will normalise the timestamps based on the
+# TOD adjustment factor. If the logger clock is behind the real clock then a
+# positive adjustment is made, if ahead then a negative adjustment is made.
+# The adjustment factor is in seconds.
+def apply_time_adjustment(date,time):
+    # TODO cfg.ts_adjustment
+    d = datetime.strptime(date+" "+time,"%Y/%m/%d %H:%M:%S")
+    epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
+    epoch+=cfg.ts_adjustment
+    datetime_obj = datetime.fromtimestamp(epoch)
+    date = datetime_obj.strftime("%Y/%m/%d")
+    time = datetime_obj.strftime("%H:%M:%S")
+    return date,time
 
 if __name__ == '__main__':
     main()

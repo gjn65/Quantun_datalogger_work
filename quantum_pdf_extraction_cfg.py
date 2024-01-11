@@ -4,6 +4,14 @@ source_file='input files/844_skewes_road_accident_20240110.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
+# The logger realtime clock can vary from the actual time so the timestamps
+# are not accurate. A function will normalise the timestamps based on the
+# TOD adjustment factor. If the logger clock is behind the real clock then a
+# positive adjustment is made, if ahead then a negative adjustment is made.
+# The adjustment factor is in seconds.
+ts_adjustment=240
+
+
 # Wheel diameter in mm - this may be used to correct the speed calculated by the
 # QDP software which uses a figure embedded in the logger (which will be in inches)
 # The combination of this value and the wheel diameter reported in the data logger
