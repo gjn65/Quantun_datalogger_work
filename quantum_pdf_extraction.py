@@ -81,7 +81,7 @@ import quantum_pdf_extraction_cfg as cfg
 
 def main():
 
-    pp = pprint.PrettyPrinter(indent=4)
+   # pp = pprint.PrettyPrinter(indent=4)
 
     loco_name=""
     start_epoch=get_epoch(cfg.start_timestamp)
@@ -381,7 +381,6 @@ def isfloat(num):
 # positive adjustment is made, if ahead then a negative adjustment is made.
 # The adjustment factor is in seconds.
 def apply_time_adjustment(date,time):
-    # TODO cfg.ts_adjustment
     d = datetime.strptime(date+" "+time,"%Y/%m/%d %H:%M:%S")
     epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
     epoch+=cfg.ts_adjustment
