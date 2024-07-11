@@ -31,6 +31,10 @@ March 2023	GJN	Initial Creation
                 Protect code is written but not implemented as I'm still working out
                 how to allow users to filter protected data...
                 Add progress bar.
+                
+                
+                ABANDONED THIS VERSION DUE TO ISSUES WITH THE PDFREADER CODE
+                WHEN THE TMC FIELD WAS >999A OR THE TP >2 DIGITS
 '''
 
 from progress.bar import Bar

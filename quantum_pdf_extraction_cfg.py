@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='input files/844_skewes_road_accident_20240110.pdf'
+source_file='input files/20240621_test.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
@@ -35,6 +35,7 @@ skip_list_words = ["Quantum Desktop Playback",
                    'TIME']
 
 # Workbook name - including path if required - no xlsx suffix, that is added by the code
+# 				  as is the loco name and the date
 workbook_name='output/qdp_output'
 worksheet_name="Data Extract"
 
