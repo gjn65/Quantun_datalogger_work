@@ -27,7 +27,7 @@ wheel_dia_actual_mm = 995
 speed_adjustment_factor = 0
 
 # Any line containing one of these phrases in omitted from processing
-# (as are all lines on Page 0 - with the exception of the wheel diameter line)
+# (as are all lines on Page 0 - except for the wheel diameter line)
 skip_list_words = ["Quantum Desktop Playback",
                    "Report Date",
                    "Locomotive",
@@ -60,7 +60,7 @@ tp_translations = {"F": "Fault", "I": "Idle", "ID": "Idle", "D": "Dyn", "S": "St
 
 # Column headers for worksheet
 # This is a list of tuples, each tuple has the column header text and a boolean flag indicating
-# whether or not the column is visible
+# whether the column is visible
 headers = [("Date", True),
            ("Time", True),
            ("Kilometres", True),

@@ -73,7 +73,7 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 """
 
 from progress.bar import Bar
-import pprint
+#import pprint
 import os
 import xlsxwriter
 from datetime import datetime
@@ -226,10 +226,10 @@ def main():
                 # We want to filter out dates prior to or after a range of datestamps - use timestamp WITHOUT adjustments
                 is_epoch_year_datestamp = check_for_epoch_year(words[1])
                 if cfg.filter_dates:
-                    # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write
+                    # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
                     if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
                         continue
-                    # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write
+                    # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write step
                     if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
                             record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
                         continue
