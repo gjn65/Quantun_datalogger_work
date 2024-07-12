@@ -105,12 +105,12 @@ def main():
         print("Epoch year records will be dropped")
     print("Input = "+cfg.source_file)
     pdf=pdfplumber.open(cfg.source_file)
-    pages=len(pdf.pages)
+    pdf_pages=len(pdf.pages)
     wb_name=""
     # Iterate through each page
     old_page=0
-    with Bar('Processing...', max=pages, width=80) as bar:
-        for page in range(pages):
+    with Bar('Processing...', max=pdf_pages, width=80) as bar:
+        for page in range(pdf_pages):
             #print("Processing page "+str(page+1)+" of "+str(pages))
             if page == 1 and old_page ==0:
                 wb_name=cfg.workbook_name+" "+loco_name+" "+datetime.now().strftime("%Y%m%d%H%M")+".xlsx"
