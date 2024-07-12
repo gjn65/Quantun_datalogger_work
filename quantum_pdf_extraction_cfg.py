@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file='input files/20240621_test.pdf'
+source_file='input files/test1.pdf'
 #source_file='sample1.pdf'
 #source_file='sample2.pdf'
 
@@ -9,7 +9,7 @@ source_file='input files/20240621_test.pdf'
 # TOD adjustment factor. If the logger clock is behind the real clock then a
 # positive adjustment is made, if ahead then a negative adjustment is made.
 # The adjustment factor is in seconds.
-ts_adjustment=240
+ts_adjustment=0
 
 
 # Wheel diameter in mm - this may be used to correct the speed calculated by the
@@ -43,9 +43,17 @@ worksheet_name="Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-filter_dates=False
-start_timestamp="2023/07/12 00:00:00"
-end_timestamp="2023/07/12 23:59:59"
+filter_dates=True
+start_timestamp="2024/04/24 00:00:00"
+end_timestamp="2024/07/12 23:59:59"
+
+# The data logger TOD clock is reverting to 1990 from time to time leading to
+# oddball sample times in the traces. If this flag is set to True then these
+# samples will be accepted for processing, if it is set to False then the samples
+# will  be ignored.
+epoch_timestamps_allowed=True
+epoch_year=1990
+
 
 # This dictionary translates the throttle position value to a meaningful text.
 # Note that Idle is stored in the logger output as "ID" but I modify it to "I"
