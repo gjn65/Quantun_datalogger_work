@@ -81,71 +81,71 @@ import pdfplumber
 import quantum_pdf_extraction_cfg as cfg
 
 
-
-
-
-
 def main():
+    # pp = pprint.PrettyPrinter(indent=4)
 
-   # pp = pprint.PrettyPrinter(indent=4)
-
-    loco_name=""
-    start_timestamp_epoch_seconds=get_epoch(cfg.start_timestamp)
-    end_timestamp_epoch_seconds=get_epoch(cfg.end_timestamp)
+    loco_name = ""
+    start_timestamp_epoch_seconds = get_epoch(cfg.start_timestamp)
+    end_timestamp_epoch_seconds = get_epoch(cfg.end_timestamp)
 
     if cfg.filter_dates:
-        print("Start from "+cfg.start_timestamp)
-        print("End at "+cfg.end_timestamp)
+        print("Start from " + cfg.start_timestamp)
+        print("End at " + cfg.end_timestamp)
     else:
         print("No record filtering required")
     if cfg.epoch_timestamps_allowed:
         print("Epoch year records are permitted")
-        print("Epoch year is "+ cfg.epoch_year)
+        print("Epoch year is " + cfg.epoch_year)
     else:
         print("Epoch year records will be dropped")
-    print("Input = "+cfg.source_file)
-    pdf=pdfplumber.open(cfg.source_file)
-    pdf_pages=len(pdf.pages)
-    wb_name=""
+    print("Input = " + cfg.source_file)
+    pdf = pdfplumber.open(cfg.source_file)
+    pdf_pages = len(pdf.pages)
+    wb_name = ""
     # Iterate through each page
-    old_page=0
+    old_page = 0
     with Bar('Processing...', max=pdf_pages, width=80) as bar:
         for page in range(pdf_pages):
-            #print("Processing page "+str(page+1)+" of "+str(pages))
-            if page == 1 and old_page ==0:
-                wb_name=cfg.workbook_name+" "+loco_name+" "+datetime.now().strftime("%Y%m%d%H%M")+".xlsx"
-                workbook=xlsxwriter.Workbook(wb_name, {'strings_to_numbers':True})
-                ws_data_samples=workbook.add_worksheet(cfg.worksheet_name)
-                lalign=workbook.add_format({'align': 'left'})
-                ws_annotations=workbook.add_worksheet("Logger Events")
-                parts=os.path.split(cfg.source_file)
-                ws_modifiers=workbook.add_worksheet("Runtime modifiers")
-                ws_row=write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder", "Locomotive " + loco_name + ". Source file " + parts[1])
-                ws_row_annotations=write_header_ann(workbook, ws_annotations, "Data extract from Quantum Data Recorder", loco_name)
-                ws_row_modifiers=write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
+            # print("Processing page "+str(page+1)+" of "+str(pages))
+            if page == 1 and old_page == 0:
+                wb_name = cfg.workbook_name + " " + loco_name + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
+                workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
+                ws_data_samples = workbook.add_worksheet(cfg.worksheet_name)
+                lalign = workbook.add_format({'align': 'left'})
+                ws_annotations = workbook.add_worksheet("Logger Events")
+                parts = os.path.split(cfg.source_file)
+                ws_modifiers = workbook.add_worksheet("Runtime modifiers")
+                ws_row = write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder",
+                                      "Locomotive " + loco_name + ". Source file " + parts[1])
+                ws_row_annotations = write_header_ann(workbook, ws_annotations,
+                                                      "Data extract from Quantum Data Recorder", loco_name)
+                ws_row_modifiers = write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
                 if cfg.filter_dates:
-                    ws_modifiers.write(ws_row_modifiers,0,"Records selected from "+cfg.start_timestamp+" to "+cfg.end_timestamp)
-                    ws_row_modifiers+=1
+                    ws_modifiers.write(ws_row_modifiers, 0,
+                                       "Records selected from " + cfg.start_timestamp + " to " + cfg.end_timestamp)
+                    ws_row_modifiers += 1
                 else:
-                    ws_modifiers.write(ws_row_modifiers,0,"No record filtering in place")
-                    ws_row_modifiers+=1
-                ws_modifiers.write(ws_row_modifiers,0,"Record timestamp offset applied is "+str(cfg.ts_adjustment)+" seconds")
+                    ws_modifiers.write(ws_row_modifiers, 0, "No record filtering in place")
+                    ws_row_modifiers += 1
+                ws_modifiers.write(ws_row_modifiers, 0,
+                                   "Record timestamp offset applied is " + str(cfg.ts_adjustment) + " seconds")
                 ws_row_modifiers += 1
                 ws_modifiers.write(ws_row_modifiers, 0,
-                               "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
-                                   wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
-                                   cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
-                                   cfg.speed_adjustment_factor) + ".")
+                                   "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
+                                       wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
+                                       cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
+                                       cfg.speed_adjustment_factor) + ".")
                 ws_row_modifiers += 1
                 if cfg.epoch_timestamps_allowed:
-                    ws_modifiers.write(ws_row_modifiers,0,"Epoch dated records permitted. Epoch year is "+cfg.epoch_year)
-                    ws_row_modifiers+=1
+                    ws_modifiers.write(ws_row_modifiers, 0,
+                                       "Epoch dated records permitted. Epoch year is " + cfg.epoch_year)
+                    ws_row_modifiers += 1
                 else:
-                    ws_modifiers.write(ws_row_modifiers,0,"Epoch year ("+cfg.epoch_year+") dated records omitted")
-                    ws_row_modifiers+=1
+                    ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + cfg.epoch_year + ") dated records omitted")
+                    ws_row_modifiers += 1
 
-            #print("Input = " + cfg.source_file)
-            old_page=page
+            # print("Input = " + cfg.source_file)
+            old_page = page
 
             page_contents = pdf.pages[page]
             text = page_contents.extract_text()
@@ -159,17 +159,17 @@ def main():
                 # Search for wheel diameter figure in 1st page, but only if adjustment factor has not already been established
                 if page == 0:
                     if "Locomotive Number" in line:
-                        words=line.split()
-                        loco_name=words[-1]
+                        words = line.split()
+                        loco_name = words[-1]
                     if cfg.speed_adjustment_factor == 0:
                         if "Circumference" in line and "Diameter" in line:
-                            words=line.split()
-                            #pp.pprint(words)
-                            wheel_diameter_qdp_inches=float(words[-1])    # wheel diameter according to the QDP software
-                            cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches*25.4)
-                            #pp.pprint(cfg.speed_adjustment_factor)
+                            words = line.split()
+                            # pp.pprint(words)
+                            wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
+                            cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
+                            # pp.pprint(cfg.speed_adjustment_factor)
                             continue
-                    continue        # We don't want anything else from page 0
+                    continue  # We don't want anything else from page 0
 
                 # Skip lines with strings we are not interested in
                 if skip_line_found(line):
@@ -180,23 +180,25 @@ def main():
                 if not line[0].isnumeric():
                     # Handle annotations
                     # Extract date and time - last word in string in format HH:MM:SS-mm/dd/yyyy
-                    words=line.split()
-                    record_date=convert_date(words[-1])
-                    record_time=words[-2].replace("-","")
-                    record_date,record_time=apply_time_adjustment(record_date,record_time)
-                    record_ts_epoch_seconds=get_epoch(record_date+" "+record_time)
-                    if start_timestamp_epoch_seconds > 0 and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
+                    words = line.split()
+                    record_date = convert_date(words[-1])
+                    record_time = words[-2].replace("-", "")
+                    record_date, record_time = apply_time_adjustment(record_date, record_time)
+                    record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
+                    if start_timestamp_epoch_seconds > 0 and (
+                            (record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
+                            record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
                         continue
 
                     ws_data_samples.write(ws_row, 0, record_date)
                     ws_data_samples.write(ws_row, 1, record_time)
                     ws_data_samples.write(ws_row, 2, ' '.join(words[:-2]), lalign)
-                    ws_row+=1
+                    ws_row += 1
 
                     # Calculate offset between this annotation and the previous record.
                     s = datetime.strptime(old_record_date + " " + old_record_time, "%Y/%m/%d %H:%M:%S")
                     e = datetime.strptime(record_date + " " + record_time, "%Y/%m/%d %H:%M:%S")
-                    offset=str(e-s)
+                    offset = str(e - s)
 
                     ws_annotations.write(ws_row_annotations, 0, record_date)
                     ws_annotations.write(ws_row_annotations, 1, record_time)
@@ -206,50 +208,51 @@ def main():
                         ws_annotations.write(ws_row_annotations, 3, old_record_date)
                         ws_annotations.write(ws_row_annotations, 4, old_record_time)
                         ws_annotations.write(ws_row_annotations, 5, offset)
-                    ws_row_annotations+=1
+                    ws_row_annotations += 1
 
                     continue
 
                 # Split the line into words on whitespace
-                words=line.split()
-                #pp.pprint(words)
-                record_date=convert_date(words[1])
-                record_time=words[0].replace("-","")
+                words = line.split()
+                # pp.pprint(words)
+                record_date = convert_date(words[1])
+                record_time = words[0].replace("-", "")
                 record_date, record_time = apply_time_adjustment(record_date, record_time)
-                old_record_date=record_date
-                old_record_time=record_time
-                record_ts_epoch_seconds=get_epoch(record_date+" "+record_time)
- #               if cfg.filter_dates and ((record_ts_epoch_seconds < start_ts_epoch_seconds) or (record_ts_epoch_seconds > end_ts_epoch_seconds)):
- #                   continue
+                old_record_date = record_date
+                old_record_time = record_time
+                record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
+                #               if cfg.filter_dates and ((record_ts_epoch_seconds < start_ts_epoch_seconds) or (record_ts_epoch_seconds > end_ts_epoch_seconds)):
+                #                   continue
                 # We want to filter out dates prior to or after a range of datestamps - use timestamp WITHOUT adjustments
-                is_epoch_year_datestamp=check_for_epoch_year(words[1])
+                is_epoch_year_datestamp = check_for_epoch_year(words[1])
                 if cfg.filter_dates:
                     # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write
                     if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
                         continue
                     # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write
-                    if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
+                    if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
+                            record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
                         continue
                 # Write record to spreadsheet
-                ws_row=write_record(ws_data_samples, ws_row, words, record_date, record_time)
+                ws_row = write_record(ws_data_samples, ws_row, words, record_date, record_time)
             bar.next()
         bar.finish()
     hide_columns(ws_data_samples, cfg.headers)
- #   ws.protect(cfg.protect_string,cfg.protection_mode)
-  #  ws_ann.protect(cfg.protect_string,cfg.protection_mode)
+    #   ws.protect(cfg.protect_string,cfg.protection_mode)
+    #  ws_ann.protect(cfg.protect_string,cfg.protection_mode)
     workbook.close()
-    print("Written file : "+wb_name)
+    print("Written file : " + wb_name)
 
-def hide_columns(ws,headers):
+
+def hide_columns(ws, headers):
     """ Hide any column with False in the header tuple """
     for column, record in enumerate(headers):
         if not record[1]:
-            ws.set_column(column,column,None,None,{'hidden':True})
+            ws.set_column(column, column, None, None, {'hidden': True})
 
 
-def    write_record(ws,ws_row,words,record_date,record_time):
+def write_record(ws, ws_row, words, record_date, record_time):
     """ Write spreadsheet row, return updated row number """
-
 
     # Time - has a dash appended
     # Date - is in mm/dd/yyyy format
@@ -278,7 +281,7 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     ws_col += 1
     ws.write_string(ws_row, ws_col, record_time)  # Timestamp
     ws_col += 1
-    #ws.write(ws_row, ws_col, "{:.2f}".format(float(words[2]) * 1.6))  # Mileage converted to km units
+    # ws.write(ws_row, ws_col, "{:.2f}".format(float(words[2]) * 1.6))  # Mileage converted to km units
     ws.write_number(ws_row, ws_col, float(words[2]) * 1.6)  # Mileage converted to km units
     ws_col += 1
     # Speed, converted to kph and adjusted according to the difference between the real wheel diameter
@@ -292,14 +295,15 @@ def    write_record(ws,ws_row,words,record_date,record_time):
     ws_col += 1
     ws.write_number(ws_row, ws_col, int(words[6]))  # Independent brake pressure
     ws_col += 1
-    ws.write(ws_row,ws_col,translate_tp(words[7]))  # Throttle position
+    ws.write(ws_row, ws_col, translate_tp(words[7]))  # Throttle position
     ws_col += 1
     # Digital inputs follow
-    for i in range(8,18,1):
+    for i in range(8, 18, 1):
         ws.write(ws_row, ws_col, "Y" if words[i] == "1" else "N")
         ws_col += 1
     ws_row += 1
     return ws_row
+
 
 def translate_tp(tp):
     """ take a throtle position. If it's a number, then return that number.
@@ -308,84 +312,83 @@ def translate_tp(tp):
         return tp
     if tp.upper() in cfg.tp_translations.keys():
         return cfg.tp_translations[tp.upper()]
-    return tp+" (Unknown)"
+    return tp + " (Unknown)"
+
 
 def convert_date(us_date):
     """ Convert US formatted date to AUS formatted date """
-    parts=us_date.split("/")
-    if len(parts)!=3:
+    parts = us_date.split("/")
+    if len(parts) != 3:
         return "invalid"
-    aus_date="{:0>4d}/{:0>2d}/{:0>2d}".format(int(parts[2]),int(parts[0]),int(parts[1]))
+    aus_date = "{:0>4d}/{:0>2d}/{:0>2d}".format(int(parts[2]), int(parts[0]), int(parts[1]))
     return aus_date
+
 
 def check_for_epoch_year(us_date):
     """ Convert US formatted date to AUS formatted date """
-    parts=us_date.split("/")
-    if len(parts)!=3:
+    parts = us_date.split("/")
+    if len(parts) != 3:
         return False
-    if int(parts[2])==cfg.epoch_year:
+    if int(parts[2]) == cfg.epoch_year:
         return True
     return False
 
 
+def write_header(wb, ws, text, loco_name):
+    wb.set_size(1920, 1080)
+    lalign = wb.add_format({'align': 'left'})
+    ws.set_column('A:B', 15, lalign)
+    numfmt = wb.add_format({'num_format': '0.00'})
+    ws.set_column('C:C', 10, numfmt)
+    ralign = wb.add_format({'align': 'right'})
+    ws.set_column('D:H', 10, ralign)
+    calign = wb.add_format({'align': 'center'})
+    ws.set_column('I:S', 10, calign)
+    ws.set_column('T:T', 20, lalign)
 
+    calign_b = wb.add_format({'align': 'center', 'bold': True})
+    ws.set_row(1, None, calign_b)
 
-def write_header(wb,ws,text,loco_name):
+    header_format = wb.add_format({'font_size': 14, 'bold': True})
 
-    wb.set_size(1920,1080)
-    lalign=wb.add_format({'align':'left'})
-    ws.set_column('A:B',15,lalign)
-    numfmt=wb.add_format({'num_format':'0.00'})
-    ws.set_column('C:C',10,numfmt)
-    ralign=wb.add_format({'align':'right'})
-    ws.set_column('D:H',10,ralign)
-    calign=wb.add_format({'align':'center'})
-    ws.set_column('I:S',10,calign)
-    ws.set_column('T:T',20,lalign)
-
-    calign_b=wb.add_format({'align':'center','bold':True})
-    ws.set_row(1,None,calign_b)
-
-    header_format=wb.add_format({'font_size':14,'bold':True})
-
-    ws.freeze_panes(3,0)
+    ws.freeze_panes(3, 0)
 
     """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0,0,text+" : "+loco_name,header_format)
+    ws.write(0, 0, text + " : " + loco_name, header_format)
 
     for column, record in enumerate(cfg.headers):
-        ws.write(1,column,record[0])
+        ws.write(1, column, record[0])
     return 3
 
 
-def write_header_modifiers(wb,ws,text):
-
-    lalign=wb.add_format({'align':'left'})
-    ws.set_column('A:A',150,lalign)
-    header_format_modifiers=wb.add_format({'font_size':14,'bold':True})
-    ws.freeze_panes(3,0)
+def write_header_modifiers(wb, ws, text):
+    lalign = wb.add_format({'align': 'left'})
+    ws.set_column('A:A', 150, lalign)
+    header_format_modifiers = wb.add_format({'font_size': 14, 'bold': True})
+    ws.freeze_panes(3, 0)
     """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0,0,text,header_format_modifiers)
+    ws.write(0, 0, text, header_format_modifiers)
     return 3
 
-def write_header_ann(wb,ws,text,loco_name):
 
-    lalign=wb.add_format({'align':'left'})
-    ws.set_column('A:B',15,lalign)
-    ws.set_column('C:C',50,lalign)
-    ws.set_column('D:F',15,lalign)
+def write_header_ann(wb, ws, text, loco_name):
+    lalign = wb.add_format({'align': 'left'})
+    ws.set_column('A:B', 15, lalign)
+    ws.set_column('C:C', 50, lalign)
+    ws.set_column('D:F', 15, lalign)
 
-    header_format_ann=wb.add_format({'font_size':14,'bold':True})
-    ws.freeze_panes(3,0)
+    header_format_ann = wb.add_format({'font_size': 14, 'bold': True})
+    ws.freeze_panes(3, 0)
     """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0,0,text+" : "+loco_name,header_format_ann)
-    ws.write(1,0,"Event Date",header_format_ann)
-    ws.write(1,1,"Event Time",header_format_ann)
-    ws.write(1,2,"Event Type",header_format_ann)
-    ws.write(1,3,"Prev Evt Date",header_format_ann)
-    ws.write(1,4,"Prev Evt Time",header_format_ann)
-    ws.write(1,5,"Offset", header_format_ann)
+    ws.write(0, 0, text + " : " + loco_name, header_format_ann)
+    ws.write(1, 0, "Event Date", header_format_ann)
+    ws.write(1, 1, "Event Time", header_format_ann)
+    ws.write(1, 2, "Event Type", header_format_ann)
+    ws.write(1, 3, "Prev Evt Date", header_format_ann)
+    ws.write(1, 4, "Prev Evt Time", header_format_ann)
+    ws.write(1, 5, "Offset", header_format_ann)
     return 3
+
 
 def skip_line_found(line):
     """
@@ -402,8 +405,8 @@ def get_epoch(timestamp):
     """ Take string in format yyyy/mm/dd hh:mm:ss and return epoch seconds (or 0 if flag is false) """
     if not cfg.filter_dates:
         return 0
-    d = datetime.strptime(timestamp,"%Y/%m/%d %H:%M:%S")
-    epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
+    d = datetime.strptime(timestamp, "%Y/%m/%d %H:%M:%S")
+    epoch = datetime(d.year, d.month, d.day, d.hour, d.minute, d.second).timestamp()
     return int(epoch)
 
 
@@ -414,19 +417,21 @@ def isfloat(num):
     except ValueError:
         return False
 
+
 # The logger realtime clock can vary from the actual time so the timestamps
 # are not accurate. This function will normalise the timestamps based on the
 # TOD adjustment factor. If the logger clock is behind the real clock then a
 # positive adjustment is made, if ahead then a negative adjustment is made.
 # The adjustment factor is in seconds.
-def apply_time_adjustment(date,time):
-    d = datetime.strptime(date+" "+time,"%Y/%m/%d %H:%M:%S")
-    epoch=datetime(d.year,d.month,d.day,d.hour,d.minute,d.second).timestamp()
-    epoch+=cfg.ts_adjustment
+def apply_time_adjustment(date, time):
+    d = datetime.strptime(date + " " + time, "%Y/%m/%d %H:%M:%S")
+    epoch = datetime(d.year, d.month, d.day, d.hour, d.minute, d.second).timestamp()
+    epoch += cfg.ts_adjustment
     datetime_obj = datetime.fromtimestamp(epoch)
     date = datetime_obj.strftime("%Y/%m/%d")
     time = datetime_obj.strftime("%H:%M:%S")
-    return date,time
+    return date, time
+
 
 if __name__ == '__main__':
     main()
