@@ -9,6 +9,15 @@ This code will parse a PDF file and create an Excel worksheet.
 The PDF file is created by running the QDP software, selecting the timescale
 required using tags (or select the entire file) then printing it to a PDF file
 
+NB: The PDF writing from the print option is a separate W11 process so time needs to
+    be allowed for that process to complete before attempting to use the resultant file
+
+NB: Ensure printer properties are set to PORTRAIT mode for PDF output
+
+PDF output doesn't seem to print contents on more than around 1200 pages, remaining pages
+are blank. This means the data range needs to be selected judiciously to ensure events of
+interest are captured.
+
 When setting up the printed page, select ALL variables logged - this code will weed out those
 that are not required.
 
