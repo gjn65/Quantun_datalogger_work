@@ -85,7 +85,7 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 import os
 import xlsxwriter
 from datetime import datetime
-import quantum_pdf_extraction_cfg as cfg
+import quantum_extraction_cfg as cfg
 
 
 def main():

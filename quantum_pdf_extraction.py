@@ -93,7 +93,7 @@ import os
 import xlsxwriter
 from datetime import datetime
 import pdfplumber
-import quantum_pdf_extraction_cfg as cfg
+import quantum_extraction_cfg as cfg
 
 
 def main():
