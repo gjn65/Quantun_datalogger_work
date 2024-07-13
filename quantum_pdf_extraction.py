@@ -66,6 +66,12 @@ March 2023	GJN	Initial Creation
 
 2024/07/12  GJN Refactor code to expand various variable names for clarity
 
+2024/07/13  GJN FORKED OFF A VERSION TO READ TEXT FILES ISSUED USING THE GENERIC/TEXT
+                PRINT DRIVER ON WINDOWS 11. PARSING IS A BIT MORE COMPLICATED BUT THE PDF
+                PRINTING OPTION ON W11 IS NOT PRINTING ALL THE LINES REQUESTED - IT SEEMS
+                TO STOP POPULATING THE FILE AFTER AROUND 1200 PAGES AND THEN GENERATES THE
+                REMAINING PAGES WITH NO CONTENT.
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 

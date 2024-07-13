@@ -20,9 +20,15 @@ def main():
 				process_line(line)
 
 def	process_line(line):
-	#print(line.rstrip())
+	# Data lines begin with an integer (1st character in timestmp)
 	if len(line)>0 and line[0].isnumeric():		# Data sample lines are the only ones starting with a digit
 		parse_line(line.rstrip())
+	else:
+	# Non data sample type line
+		if 'Quantum Desktop Playback' in line and 'Page' in line: # Header line
+			parts=line.rstrip().split()
+			page_number=parts[4]
+			print("Processing page "+str(page_number))
 		#sys.exit(0)
 
 def	parse_line(line):
