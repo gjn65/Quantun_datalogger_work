@@ -78,6 +78,25 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 
 2024/07/16  GJN First cut of text based input processing code
 
+Maybe implement a structure to hold WB information and pass around
+instead of using global variables
+
+    wb=dict()
+    wb["name"]=wb_name
+    wb["instance"]=workbook
+    wb["sheets"]=dict()
+    wb["sheets"]["data_samples"] = dict()
+    wb["sheets"]["data_samples"]["row"] = ws_row_data_samples
+    wb["sheets"]["data_samples"]["instance"] = ws_data_samples
+    wb["sheets"]["annotations"] = dict()
+    wb["sheets"]["annotations"]["row"] = ws_row_data_samples
+    wb["sheets"]["annotations"]["instance"] = ws_data_samples
+    wb["sheets"]["modifiers"] = dict()
+    wb["sheets"]["modifiers"]["row"] = ws_row_data_samples
+    wb["sheets"]["modifiers"]["instance"] = ws_data_samples
+    wb["formats"]=dict()
+    wb["formats"]["lalign"]=lalign
+
 
 """
 
@@ -241,25 +260,6 @@ def create_workbook():
         ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + str(cfg.epoch_year) + ") dated records omitted")
         ws_row_modifiers += 1
 
-# Maybe implement this structure later and pass object around rather
-# than using global variables?
- #   pp = pprint.PrettyPrinter(indent=4)
- #   wb=dict()
- #   wb["name"]=wb_name
- #   wb["instance"]=workbook
- #   wb["sheets"]=dict()
- #   wb["sheets"]["data_samples"] = dict()
- #   wb["sheets"]["data_samples"]["row"] = ws_row_data_samples
- #   wb["sheets"]["data_samples"]["instance"] = ws_data_samples
- #   wb["sheets"]["annotations"] = dict()
- #   wb["sheets"]["annotations"]["row"] = ws_row_data_samples
- #   wb["sheets"]["annotations"]["instance"] = ws_data_samples
- #   wb["sheets"]["modifiers"] = dict()
- #   wb["sheets"]["modifiers"]["row"] = ws_row_data_samples
- #   wb["sheets"]["modifiers"]["instance"] = ws_data_samples
- #   wb["formats"]=dict()
- #   wb["formats"]["lalign"]=lalign
- #   pp.pprint(wb)
 
     return
 
