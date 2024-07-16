@@ -87,169 +87,298 @@ import xlsxwriter
 from datetime import datetime
 import quantum_extraction_cfg as cfg
 
+loco_name = ""
+current_page=0
 
 def main():
     # pp = pprint.PrettyPrinter(indent=4)
 
-    loco_name = ""
+    global wb_name
+    global workbook
+
+    global start_timestamp_epoch_seconds
+    global end_timestamp_epoch_seconds
     start_timestamp_epoch_seconds = get_epoch(cfg.start_timestamp)
     end_timestamp_epoch_seconds = get_epoch(cfg.end_timestamp)
 
+
     if cfg.filter_dates:
+        print("Record filtering enabled")
         print("Start from " + cfg.start_timestamp)
         print("End at " + cfg.end_timestamp)
     else:
         print("No record filtering required")
     if cfg.epoch_timestamps_allowed:
         print("Epoch year records are permitted")
-        print("Epoch year is " + cfg.epoch_year)
+        print("Epoch year is " + str(cfg.epoch_year))
     else:
         print("Epoch year records will be dropped")
     print("Input = " + cfg.source_file)
-    pdf = pdfplumber.open(cfg.source_file)
-    pdf_pages = len(pdf.pages)
-    wb_name = ""
-    # Iterate through each page
-    old_page = 0
-    with Bar('Processing...', max=pdf_pages, width=80) as bar:
-        for page in range(pdf_pages):
-            # print("Processing page "+str(page+1)+" of "+str(pages))
-            if page == 1 and old_page == 0:
-                wb_name = cfg.workbook_name + " " + loco_name + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
-                workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
-                ws_data_samples = workbook.add_worksheet(cfg.worksheet_name)
-                lalign = workbook.add_format({'align': 'left'})
-                ws_annotations = workbook.add_worksheet("Logger Events")
-                parts = os.path.split(cfg.source_file)
-                ws_modifiers = workbook.add_worksheet("Runtime modifiers")
-                ws_row = write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder",
-                                      "Locomotive " + loco_name + ". Source file " + parts[1])
-                ws_row_annotations = write_header_ann(workbook, ws_annotations,
-                                                      "Data extract from Quantum Data Recorder", loco_name)
-                ws_row_modifiers = write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
-                if cfg.filter_dates:
-                    ws_modifiers.write(ws_row_modifiers, 0,
-                                       "Records selected from " + cfg.start_timestamp + " to " + cfg.end_timestamp)
-                    ws_row_modifiers += 1
-                else:
-                    ws_modifiers.write(ws_row_modifiers, 0, "No record filtering in place")
-                    ws_row_modifiers += 1
-                ws_modifiers.write(ws_row_modifiers, 0,
-                                   "Record timestamp offset applied is " + str(cfg.ts_adjustment) + " seconds")
-                ws_row_modifiers += 1
-                ws_modifiers.write(ws_row_modifiers, 0,
-                                   "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
-                                       wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
-                                       cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
-                                       cfg.speed_adjustment_factor) + ".")
-                ws_row_modifiers += 1
-                if cfg.epoch_timestamps_allowed:
-                    ws_modifiers.write(ws_row_modifiers, 0,
-                                       "Epoch dated records permitted. Epoch year is " + cfg.epoch_year)
-                    ws_row_modifiers += 1
-                else:
-                    ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + cfg.epoch_year + ") dated records omitted")
-                    ws_row_modifiers += 1
 
-            # print("Input = " + cfg.source_file)
-            old_page = page
-
-            page_contents = pdf.pages[page]
-            text = page_contents.extract_text()
-            lines = text.split('\n')
-
-            # Iterate through each line for this page
+    with open(cfg.source_file) as file:
+        while raw_line := file.readline():
+            # We need to examine the line to see if there is a FORM FEED (0x0C) within it, if so
+            # the line needs to be split on that character and each half treated as a separate line
+            # The W11 print to Generic Text or the Quantum software inserts FFs at the end of the page
+            raw_line = raw_line.rstrip()
+            lines = raw_line.split('\x0c')
             for line in lines:
-                if len(line) == 0:
-                    continue
+                process_line(line)
 
-                # Search for wheel diameter figure in 1st page, but only if adjustment factor has not already been established
-                if page == 0:
-                    if "Locomotive Number" in line:
-                        words = line.split()
-                        loco_name = words[-1]
-                    if cfg.speed_adjustment_factor == 0:
-                        if "Circumference" in line and "Diameter" in line:
-                            words = line.split()
-                            # pp.pprint(words)
-                            wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
-                            cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
-                            # pp.pprint(cfg.speed_adjustment_factor)
-                            continue
-                    continue  # We don't want anything else from page 0
-
-                # Skip lines with strings we are not interested in
-                if skip_line_found(line):
-                    continue
-
-                # If 1st character in the line is non-numeric we treat the line as an annotation
-                # for example - recorder power up, laptop connection etc.
-                if not line[0].isnumeric():
-                    # Handle annotations
-                    # Extract date and time - last word in string in format HH:MM:SS-mm/dd/yyyy
-                    words = line.split()
-                    record_date = convert_date(words[-1])
-                    record_time = words[-2].replace("-", "")
-                    record_date, record_time = apply_time_adjustment(record_date, record_time)
-                    record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
-                    if start_timestamp_epoch_seconds > 0 and (
-                            (record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
-                            record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
-                        continue
-
-                    ws_data_samples.write(ws_row, 0, record_date)
-                    ws_data_samples.write(ws_row, 1, record_time)
-                    ws_data_samples.write(ws_row, 2, ' '.join(words[:-2]), lalign)
-                    ws_row += 1
-
-                    # Calculate offset between this annotation and the previous record.
-                    s = datetime.strptime(old_record_date + " " + old_record_time, "%Y/%m/%d %H:%M:%S")
-                    e = datetime.strptime(record_date + " " + record_time, "%Y/%m/%d %H:%M:%S")
-                    offset = str(e - s)
-
-                    ws_annotations.write(ws_row_annotations, 0, record_date)
-                    ws_annotations.write(ws_row_annotations, 1, record_time)
-                    ws_annotations.write(ws_row_annotations, 2, " ".join(words[:-2]))
-                    # Only write inter-event interval for power related events.
-                    if words[0][:5] == 'Power':
-                        ws_annotations.write(ws_row_annotations, 3, old_record_date)
-                        ws_annotations.write(ws_row_annotations, 4, old_record_time)
-                        ws_annotations.write(ws_row_annotations, 5, offset)
-                    ws_row_annotations += 1
-
-                    continue
-
-                # Split the line into words on whitespace
-                words = line.split()
-                # pp.pprint(words)
-                record_date = convert_date(words[1])
-                record_time = words[0].replace("-", "")
-                record_date, record_time = apply_time_adjustment(record_date, record_time)
-                old_record_date = record_date
-                old_record_time = record_time
-                record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
-                #               if cfg.filter_dates and ((record_ts_epoch_seconds < start_ts_epoch_seconds) or (record_ts_epoch_seconds > end_ts_epoch_seconds)):
-                #                   continue
-                # We want to filter out dates prior to or after a range of datestamps - use timestamp WITHOUT adjustments
-                is_epoch_year_datestamp = check_for_epoch_year(words[1])
-                if cfg.filter_dates:
-                    # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
-                    if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
-                        continue
-                    # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write step
-                    if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
-                            record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
-                        continue
-                # Write record to spreadsheet
-                ws_row = write_record(ws_data_samples, ws_row, words, record_date, record_time)
-            bar.next()
-        bar.finish()
     hide_columns(ws_data_samples, cfg.headers)
-    #   ws.protect(cfg.protect_string,cfg.protection_mode)
+    #   ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
     #  ws_ann.protect(cfg.protect_string,cfg.protection_mode)
     workbook.close()
     print("Written file : " + wb_name)
 
+
+
+def process_line(line):
+    global current_page
+    global loco_name
+    global wheel_diameter_qdp_inches
+
+    if len(line)==0:
+        return
+
+    if current_page > 1:
+        # Skip lines with strings we are not interested in
+        if skip_line_found(line):
+            return
+
+        # Data lines begin with an integer (1st character in timestmp)
+        if line[0].isnumeric():  # Data sample lines are the only ones starting with a digit
+            #Process data sample line here
+            process_sample(line)
+            return
+        else:
+            write_annotation(line)
+            return
+    else:
+        # Non data sample type line
+        if 'Quantum Desktop Playback' in line and 'Page' in line:  # Header line
+            parts = line.rstrip().split()
+            page_number = int(parts[4])
+            # If we are now on page number 2 then we should have all the informational variables from
+            # page 1 set and ready to create the workbook.
+            if page_number == 2 and current_page == 1:
+                create_workbook()
+            current_page=page_number
+            return
+        # In page 1 we should be able to retrieve the informational data which we store in static variables for
+        # later use
+        if current_page == 1:
+            if "Locomotive Number" in line:
+                words = line.split()
+                loco_name = words[-1]
+                return
+            if cfg.speed_adjustment_factor == 0:
+                if "Circumference" in line and "Diameter" in line:
+                    words = line.split()
+                    # pp.pprint(words)
+                    wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
+                    cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
+                    # pp.pprint(cfg.speed_adjustment_factor)
+                    return
+            return  # We don't want anything else from page 1
+
+        # sys.exit(0)
+
+
+def create_workbook():
+    global loco_name
+    global workbook
+    global ws_data_samples
+    global ws_row_data_samples
+    global ws_annotations
+    global ws_row_annotations
+    global ws_modifiers
+    global ws_row_modifiers
+    global lalign
+    global wb_name
+    global wheel_diameter_qdp_inches
+
+    wb_name = cfg.workbook_name + " " + loco_name + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
+    workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
+    ws_data_samples = workbook.add_worksheet(cfg.worksheet_name)
+    lalign = workbook.add_format({'align': 'left'})
+    ws_annotations = workbook.add_worksheet("Logger Events")
+    parts = os.path.split(cfg.source_file)
+    ws_modifiers = workbook.add_worksheet("Runtime modifiers")
+    ws_row_data_samples = write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder",
+                            "Locomotive " + loco_name + ". Source file " + parts[1])
+    ws_row_annotations = write_header_ann(workbook, ws_annotations,
+                        "Data extract from Quantum Data Recorder", loco_name)
+    ws_row_modifiers = write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
+    if cfg.filter_dates:
+        ws_modifiers.write(ws_row_modifiers, 0,
+                            "Records selected from " + cfg.start_timestamp + " to " + cfg.end_timestamp)
+        ws_row_modifiers += 1
+    else:
+        ws_modifiers.write(ws_row_modifiers, 0, "No record filtering in place")
+        ws_row_modifiers += 1
+    ws_modifiers.write(ws_row_modifiers, 0,
+                        "Record timestamp offset applied is " + str(cfg.ts_adjustment) + " seconds")
+    ws_row_modifiers += 1
+    ws_modifiers.write(ws_row_modifiers, 0,
+                       "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
+                       wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
+                       cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
+                       cfg.speed_adjustment_factor) + ".")
+    ws_row_modifiers += 1
+    if cfg.epoch_timestamps_allowed:
+        ws_modifiers.write(ws_row_modifiers, 0,
+            "Epoch dated records permitted. Epoch year is " + str(cfg.epoch_year))
+        ws_row_modifiers += 1
+    else:
+        ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + str(cfg.epoch_year) + ") dated records omitted")
+        ws_row_modifiers += 1
+
+    return
+
+def write_annotation(line):
+    global start_timestamp_epoch_seconds
+    global end_timestamp_epoch_seconds
+    global ws_data_samples
+    global ws_row_data_samples
+    global ws_annotations
+    global ws_row_annotations
+    global old_record_data
+    global old_record_time
+
+
+    # Handle annotations
+    # Extract date and time - last word in string in format HH:MM:SS-mm/dd/yyyy
+    words = line.split()
+    record_date = convert_date(words[-1])
+    record_time = words[-2].replace("-", "")
+    record_date, record_time = apply_time_adjustment(record_date, record_time)
+    record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
+    if start_timestamp_epoch_seconds > 0 and (
+            (record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
+            record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
+            return
+
+    ws_data_samples.write(ws_row_data_samples, 0, record_date)
+    ws_data_samples.write(ws_row_data_samples, 1, record_time)
+    ws_data_samples.write(ws_row_data_samples, 2, ' '.join(words[:-2]), lalign)
+    ws_row_data_samples += 1
+
+    # Calculate offset between this annotation and the previous record.
+    # If either date is in the epoch period then don't do this as it makes no sense
+    if not check_for_epoch_year(old_record_date) and not check_for_epoch_year(record_date):
+        s = datetime.strptime(old_record_date + " " + old_record_time, "%Y/%m/%d %H:%M:%S")
+        e = datetime.strptime(record_date + " " + record_time, "%Y/%m/%d %H:%M:%S")
+        offset = str(e - s)
+    else:
+        offset="N/A"
+
+    ws_annotations.write(ws_row_annotations, 0, record_date)
+    ws_annotations.write(ws_row_annotations, 1, record_time)
+    ws_annotations.write(ws_row_annotations, 2, " ".join(words[:-2]))
+    # Only write inter-event interval for power related events.
+    if words[0][:5] == 'Power':
+        ws_annotations.write(ws_row_annotations, 3, old_record_date)
+        ws_annotations.write(ws_row_annotations, 4, old_record_time)
+        ws_annotations.write(ws_row_annotations, 5, offset)
+        ws_row_annotations += 1
+
+    return
+
+def process_sample(line):
+    global old_record_date
+    global old_record_time
+    global ws_data_samples
+    global ws_row_data_samples
+
+    time_position = 0
+    time_length = 8
+    date_position = 10
+    date_length = 10
+    remainder_position = 20
+    speed_position = 28
+    speed_length = 4
+    tmc_position = 32
+    tmc_length = 4
+
+    print("Sanity checking not done yet!")
+    print(line)
+    # Date and time are in fixed positions starting at column 0 and in the format
+    # hh:mm:ss- mm/dd/yyyy
+    record_time = line[time_position:time_position + time_length]
+    print("time = " + record_time)
+    date_us_fmt = line[date_position:date_position + date_length]
+    print("date = " + date_us_fmt)
+    record_date = convert_date(date_us_fmt)
+    record_date, record_time = apply_time_adjustment(record_date, record_time)
+    old_record_date = record_date
+    old_record_time = record_time
+
+    # Because the mileage field leading space is lost when the distance goes to 3 figures and
+    # extends when it goes to 4 figures, we start at the end of the date field then strip any leading
+    # spaces. The mileage field should be followed by a space as the next field will be the speed
+    parts = line[remainder_position:].lstrip().split(" ", 1)
+    mileage = float(parts[0])
+    print("mileage = " + str(mileage))
+    # We need to handle speed and tmc carefully as the TMC field will lose leading spaces when it
+    # goes over 3 digits
+    # pp.pprint(line[28:32])
+    speed = int(line[speed_position:speed_position + speed_length].strip())
+    print("speed = " + str(speed))
+    tmc = int(line[tmc_position:tmc_position + tmc_length].strip())
+    print("tmc = " + str(tmc))
+    parts = line[speed_position + speed_length + tmc_length:].lstrip().split()
+    # pp.pprint(parts)
+
+    # The first 3 fields are values as follows:
+    brake_pipe_pressure = int(parts[0])
+    print("BP = " + str(brake_pipe_pressure))
+    brake_cylinder_pressure = int(parts[1])
+    print("BC = " + str(brake_cylinder_pressure))
+    throttle_position = parts[2]  # This is left as string to cater for (D)ynamic or low (ID)le states
+    print("TP = " + throttle_position)
+
+    # The rest of these are binary flags (1 is on, 0 is off)
+    # Flags are:
+    # Reverse
+    # EIE (Engineer induced emergency)
+    # Pressure Control Switch (set when BP < 45 psi)
+    # Headlight - short end
+    # Forward
+    # Headlight - long end
+    # Horn
+    # Digital Spare 1
+    # Digital Spare 2
+    # Vigilance Control Alert Acknowledged
+    # Axle Drive TypeError
+    flags = parts[3:]
+
+
+    record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
+    # We want to filter out dates prior to or after a range of datestamps - use timestamp WITHOUT adjustments
+    is_epoch_year_datestamp = check_for_epoch_year(record_date)
+    if cfg.filter_dates:
+        # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
+        if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
+            return
+        # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write step
+        if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
+                    record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
+            return
+
+    # Write record to spreadsheet
+    ws_row_data_samples = write_record(ws_data_samples,
+                                       ws_row_data_samples,
+                                       mileage,
+                                       speed,
+                                       tmc,
+                                       brake_pipe_pressure,
+                                       brake_cylinder_pressure,
+                                       throttle_position,
+                                       flags,
+                                       record_date,
+                                       record_time)
+    return
 
 def hide_columns(ws, headers):
     """ Hide any column with False in the header tuple """
@@ -258,7 +387,7 @@ def hide_columns(ws, headers):
             ws.set_column(column, column, None, None, {'hidden': True})
 
 
-def write_record(ws, ws_row, words, record_date, record_time):
+def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cylinder_pressure, throttle_position, flags, record_date, record_time):
     """ Write spreadsheet row, return updated row number """
 
     # Time - has a dash appended
@@ -289,24 +418,24 @@ def write_record(ws, ws_row, words, record_date, record_time):
     ws.write_string(ws_row, ws_col, record_time)  # Timestamp
     ws_col += 1
     # ws.write(ws_row, ws_col, "{:.2f}".format(float(words[2]) * 1.6))  # Mileage converted to km units
-    ws.write_number(ws_row, ws_col, float(words[2]) * 1.6)  # Mileage converted to km units
+    ws.write_number(ws_row, ws_col, float(mileage) * 1.6)  # Mileage converted to km units
     ws_col += 1
     # Speed, converted to kph and adjusted according to the difference between the real wheel diameter
     # and the diameter reported by the QDP software. NB: The reported wheel diameter can be set when
     # downloading the data via QDP but not when downloading via the QRST software.
-    ws.write_number(ws_row, ws_col, round(int(words[3]) * 1.6 * cfg.speed_adjustment_factor))
+    ws.write_number(ws_row, ws_col, round(speed * 1.6 * cfg.speed_adjustment_factor))
     ws_col += 1
-    ws.write_number(ws_row, ws_col, int(words[4]))  # TMC
+    ws.write_number(ws_row, ws_col, tmc)  # TMC
     ws_col += 1
-    ws.write_number(ws_row, ws_col, int(words[5]))  # Brake pipe pressure
+    ws.write_number(ws_row, ws_col, brake_pipe_pressure)  # Brake pipe pressure
     ws_col += 1
-    ws.write_number(ws_row, ws_col, int(words[6]))  # Independent brake pressure
+    ws.write_number(ws_row, ws_col, brake_cylinder_pressure)  # Independent brake pressure
     ws_col += 1
-    ws.write(ws_row, ws_col, translate_tp(words[7]))  # Throttle position
+    ws.write(ws_row, ws_col, translate_tp(throttle_position))  # Throttle position
     ws_col += 1
     # Digital inputs follow
-    for i in range(8, 18, 1):
-        ws.write(ws_row, ws_col, "Y" if words[i] == "1" else "N")
+    for flag in flags:
+        ws.write(ws_row, ws_col, "Y" if flag == "1" else "N")
         ws_col += 1
     ws_row += 1
     return ws_row
@@ -331,13 +460,9 @@ def convert_date(us_date):
     return aus_date
 
 
-def check_for_epoch_year(us_date):
-    """ Convert US formatted date to AUS formatted date """
-    parts = us_date.split("/")
-    if len(parts) != 3:
-        return False
-    if int(parts[2]) == cfg.epoch_year:
-        return True
+def check_for_epoch_year(date):
+    if str(cfg.epoch_year) in date:
+      return True
     return False
 
 
@@ -438,6 +563,7 @@ def apply_time_adjustment(date, time):
     date = datetime_obj.strftime("%Y/%m/%d")
     time = datetime_obj.strftime("%H:%M:%S")
     return date, time
+
 
 
 if __name__ == '__main__':
