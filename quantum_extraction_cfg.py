@@ -1,6 +1,6 @@
 # File extacted from Quantum Desktop Software
 # - print to PDF file to generate.
-source_file = 'input files/codetest.txt'
+source_file = 'input files/full_file_as_text.txt'
 # source_file='sample1.pdf'
 # source_file='sample2.pdf'
 
@@ -42,9 +42,9 @@ worksheet_name = "Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-filter_dates = False
-start_timestamp = "2024/04/24 00:00:00"
-end_timestamp = "2024/07/12 23:59:59"
+filter_dates = True
+start_timestamp = "2024/04/07 17:00:00"
+end_timestamp = "2024/04/07 18:00:00"
 
 # The data logger TOD clock is reverting to 1990 from time to time leading to
 # oddball sample times in the traces. If this flag is set to True then these

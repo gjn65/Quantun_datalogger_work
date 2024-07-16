@@ -76,19 +76,22 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 	truth table in the Quantum Speedometer manuai). We disconnected these 2 signal feeds
 	into the data logger in June/July 2023 to fix this problem
 
-
+2024/07/16  GJN First cut of text based input processing code
 
 
 """
 
-#import pprint
+import pprint
 import os
 import xlsxwriter
 from datetime import datetime
 import quantum_extraction_cfg as cfg
 
 loco_name = ""
-current_page=0
+old_page_number=0
+current_page_number=0
+old_record_date="None"
+old_record_time="None"
 
 def main():
     # pp = pprint.PrettyPrinter(indent=4)
@@ -113,6 +116,10 @@ def main():
         print("Epoch year is " + str(cfg.epoch_year))
     else:
         print("Epoch year records will be dropped")
+    if cfg.ts_adjustment != 0:
+        print("Timestamps adjustment factor is " + str(cfg.ts_adjustment) + " seconds")
+    else:
+        print("No timestamp adjustment in force")
     print("Input = " + cfg.source_file)
 
     with open(cfg.source_file) as file:
@@ -134,56 +141,55 @@ def main():
 
 
 def process_line(line):
-    global current_page
+    global old_page_number
     global loco_name
     global wheel_diameter_qdp_inches
+    global current_page_number
 
     if len(line)==0:
         return
 
-    if current_page > 1:
+    if 'Page' in line:
+        current_page_number = get_page_number(line)
+        print("Processing page " + str(current_page_number))
+        return
+
+    if old_page_number > 1:
         # Skip lines with strings we are not interested in
         if skip_line_found(line):
             return
 
         # Data lines begin with an integer (1st character in timestmp)
         if line[0].isnumeric():  # Data sample lines are the only ones starting with a digit
-            #Process data sample line here
             process_sample(line)
-            return
         else:
             write_annotation(line)
-            return
+
+        if current_page_number != old_page_number:
+            old_page_number=current_page_number
+
     else:
-        # Non data sample type line
-        if 'Quantum Desktop Playback' in line and 'Page' in line:  # Header line
-            parts = line.rstrip().split()
-            page_number = int(parts[4])
-            # If we are now on page number 2 then we should have all the informational variables from
-            # page 1 set and ready to create the workbook.
-            if page_number == 2 and current_page == 1:
-                create_workbook()
-            current_page=page_number
+        # Page 1 stuff here
+        # If we are now on page number 2 then we should have all the informational variables from
+        # page 1 set and ready to create the workbook.
+        if current_page_number == 2 and old_page_number == 1:
+            create_workbook()
+            old_page_number=current_page_number
             return
-        # In page 1 we should be able to retrieve the informational data which we store in static variables for
-        # later use
-        if current_page == 1:
-            if "Locomotive Number" in line:
+        old_page_number=current_page_number
+        if "Locomotive Number" in line:
+            words = line.split()
+            loco_name = words[-1]
+            return
+        if cfg.speed_adjustment_factor == 0:
+            if "Circumference" in line and "Diameter" in line:
                 words = line.split()
-                loco_name = words[-1]
+                # pp.pprint(words)
+                wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
+                cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
+                # pp.pprint(cfg.speed_adjustment_factor)
                 return
-            if cfg.speed_adjustment_factor == 0:
-                if "Circumference" in line and "Diameter" in line:
-                    words = line.split()
-                    # pp.pprint(words)
-                    wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
-                    cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
-                    # pp.pprint(cfg.speed_adjustment_factor)
-                    return
-            return  # We don't want anything else from page 1
-
-        # sys.exit(0)
-
+        return  # We don't want anything else from page 1
 
 def create_workbook():
     global loco_name
@@ -197,6 +203,7 @@ def create_workbook():
     global lalign
     global wb_name
     global wheel_diameter_qdp_inches
+
 
     wb_name = cfg.workbook_name + " " + loco_name + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
     workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
@@ -234,6 +241,26 @@ def create_workbook():
         ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + str(cfg.epoch_year) + ") dated records omitted")
         ws_row_modifiers += 1
 
+# Maybe implement this structure later and pass object around rather
+# than using global variables?
+ #   pp = pprint.PrettyPrinter(indent=4)
+ #   wb=dict()
+ #   wb["name"]=wb_name
+ #   wb["instance"]=workbook
+ #   wb["sheets"]=dict()
+ #   wb["sheets"]["data_samples"] = dict()
+ #   wb["sheets"]["data_samples"]["row"] = ws_row_data_samples
+ #   wb["sheets"]["data_samples"]["instance"] = ws_data_samples
+ #   wb["sheets"]["annotations"] = dict()
+ #   wb["sheets"]["annotations"]["row"] = ws_row_data_samples
+ #   wb["sheets"]["annotations"]["instance"] = ws_data_samples
+ #   wb["sheets"]["modifiers"] = dict()
+ #   wb["sheets"]["modifiers"]["row"] = ws_row_data_samples
+ #   wb["sheets"]["modifiers"]["instance"] = ws_data_samples
+ #   wb["formats"]=dict()
+ #   wb["formats"]["lalign"]=lalign
+ #   pp.pprint(wb)
+
     return
 
 def write_annotation(line):
@@ -266,7 +293,7 @@ def write_annotation(line):
 
     # Calculate offset between this annotation and the previous record.
     # If either date is in the epoch period then don't do this as it makes no sense
-    if not check_for_epoch_year(old_record_date) and not check_for_epoch_year(record_date):
+    if old_record_date != "None" and not check_for_epoch_year(old_record_date) and not check_for_epoch_year(record_date):
         s = datetime.strptime(old_record_date + " " + old_record_time, "%Y/%m/%d %H:%M:%S")
         e = datetime.strptime(record_date + " " + record_time, "%Y/%m/%d %H:%M:%S")
         offset = str(e - s)
@@ -301,14 +328,10 @@ def process_sample(line):
     tmc_position = 32
     tmc_length = 4
 
-    print("Sanity checking not done yet!")
-    print(line)
     # Date and time are in fixed positions starting at column 0 and in the format
     # hh:mm:ss- mm/dd/yyyy
     record_time = line[time_position:time_position + time_length]
-    print("time = " + record_time)
     date_us_fmt = line[date_position:date_position + date_length]
-    print("date = " + date_us_fmt)
     record_date = convert_date(date_us_fmt)
     record_date, record_time = apply_time_adjustment(record_date, record_time)
     old_record_date = record_date
@@ -319,24 +342,18 @@ def process_sample(line):
     # spaces. The mileage field should be followed by a space as the next field will be the speed
     parts = line[remainder_position:].lstrip().split(" ", 1)
     mileage = float(parts[0])
-    print("mileage = " + str(mileage))
-    # We need to handle speed and tmc carefully as the TMC field will lose leading spaces when it
+     # We need to handle speed and tmc carefully as the TMC field will lose leading spaces when it
     # goes over 3 digits
     # pp.pprint(line[28:32])
     speed = int(line[speed_position:speed_position + speed_length].strip())
-    print("speed = " + str(speed))
     tmc = int(line[tmc_position:tmc_position + tmc_length].strip())
-    print("tmc = " + str(tmc))
     parts = line[speed_position + speed_length + tmc_length:].lstrip().split()
     # pp.pprint(parts)
 
     # The first 3 fields are values as follows:
     brake_pipe_pressure = int(parts[0])
-    print("BP = " + str(brake_pipe_pressure))
     brake_cylinder_pressure = int(parts[1])
-    print("BC = " + str(brake_cylinder_pressure))
     throttle_position = parts[2]  # This is left as string to cater for (D)ynamic or low (ID)le states
-    print("TP = " + throttle_position)
 
     # The rest of these are binary flags (1 is on, 0 is off)
     # Flags are:
@@ -564,7 +581,10 @@ def apply_time_adjustment(date, time):
     time = datetime_obj.strftime("%H:%M:%S")
     return date, time
 
-
+def get_page_number(line):
+    parts = line.rstrip().split()
+    page_number = int(parts[4])
+    return page_number
 
 if __name__ == '__main__':
     main()
