@@ -102,6 +102,25 @@ instead of using global variables
     wb["formats"]["lalign"]=lalign
 
 
+*********************************************************************************************************
+
+NOTE RE EPOCH OR 1990 DATE RECORD HANDLING
+Due to an, as yet unsolved, issue with the Quantum datalogger the time-of-day clock reset to
+01/01/1990 in late April. The TOD counter incremented for a while then reset and repeated this
+until I reset the TOD in the logger in June.
+
+This may well happen again so this code needs to be able to handle records with a TOD in the 1990
+range (the Quantum system's epoch date). There is a flag in the configuration file to permit or
+deny writing epoch records to the spreadsheet.
+
+Also, when filtering records to those between 2 date/times - we need to include epoch records
+within those 2 bounds but exclude epoch records prior to and subsequent to the bounds.
+
+Finally, wnen calculating the time between annotation records (non data records), we cannot calculate
+the interval if either record has an epoch datestamp.
+
+*********************************************************************************************************
+
 """
 
 import pprint
