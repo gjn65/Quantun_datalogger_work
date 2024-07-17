@@ -78,6 +78,10 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 
 2024/07/16  GJN First cut of text based input processing code
 
+2024/07/17  GJN Add "writing_records_to_xls" flag to control writing 1990 date records to the
+                workbook when we are filtering based on dates. We only want 1990 records included
+                if they are within the range of selected dates.
+
 Maybe implement a structure to hold WB information and pass around
 instead of using global variables
 
@@ -111,6 +115,7 @@ old_page_number=0
 current_page_number=0
 old_record_date="None"
 old_record_time="None"
+writing_records_to_xls=True     # Only used when filtering records based on date.
 
 def main():
     # pp = pprint.PrettyPrinter(indent=4)
@@ -317,6 +322,7 @@ def process_sample(line):
     global old_record_time
     global ws_data_samples
     global ws_row_data_samples
+    global writing_records_to_xls           # Only used when filtering records on date
 
     time_position = 0
     time_length = 8
@@ -378,10 +384,19 @@ def process_sample(line):
         # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
         if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
             return
+        # Timestamp is epoch year but we are not currently writing records to the woerkbook as they
+        # are outside of the required date range
+        if is_epoch_year_datestamp and not writing_records_to_xls:
+            return
         # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write step
+        # Set flag to prevent epoch year records from being written to the workbook.
         if not is_epoch_year_datestamp and ((record_ts_epoch_seconds < start_timestamp_epoch_seconds) or (
                     record_ts_epoch_seconds > end_timestamp_epoch_seconds)):
+            writing_records_to_xls=False
             return
+        # Set a flag to allow epoch year records to be written the workbook as we are in the range of
+        # valid date records.
+        writing_records_to_xls=True
 
     # Write record to spreadsheet
     ws_row_data_samples = write_record(ws_data_samples,
