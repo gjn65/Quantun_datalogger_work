@@ -114,7 +114,11 @@ range (the Quantum system's epoch date). There is a flag in the configuration fi
 deny writing epoch records to the spreadsheet.
 
 Also, when filtering records to those between 2 date/times - we need to include epoch records
-within those 2 bounds but exclude epoch records prior to and subsequent to the bounds.
+within those 2 bounds but exclude epoch records prior to and subsequent to the bounds. Note
+that epoch dated records trailing a block of "in-date" records will be recorded until we reach
+a non-eopch, out-of-date, record - this is because we cannot tell, when reading an epoch record,
+whether the next non-epoch record somewhere further in the file is within or without the desired
+range of dates.
 
 Finally, wnen calculating the time between annotation records (non data records), we cannot calculate
 the interval if either record has an epoch datestamp.
