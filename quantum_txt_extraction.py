@@ -66,6 +66,22 @@ March 2023	GJN	Initial Creation
                 TO STOP POPULATING THE FILE AFTER AROUND 1200 PAGES AND THEN GENERATES THE
                 REMAINING PAGES WITH NO CONTENT.
 
+2024/07/16  GJN First cut of text based input processing code
+
+2024/07/17  GJN Add "writing_records_to_xls" flag to control writing 1990 date records to the
+                workbook when we are filtering based on dates. We only want 1990 records included
+                if they are within the range of selected dates.
+
+2025/02/13  GJN In order to allow the code to cater for multiple locomotives, the wheel diameter actual
+                setting in the configuration file is now a dictionary keyed on the locomotive number
+                expressed as a string (to cater for odd bod entries). The locomotive number is extracted
+                from the input file (so it must be read before the wheel diameter entry).
+                If no locomotive number is detected in the input file or one is detected but there is no
+                corresponding entry in the configuration file dictionary then the code will stop.
+                The user should either fix the configuration file and/or manually edit the input file to
+                set the "Locomotive Number is         -      xxx" line,
+
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -76,37 +92,13 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 	truth table in the Quantum Speedometer manuai). We disconnected these 2 signal feeds
 	into the data logger in June/July 2023 to fix this problem
 
-2024/07/16  GJN First cut of text based input processing code
-
-2024/07/17  GJN Add "writing_records_to_xls" flag to control writing 1990 date records to the
-                workbook when we are filtering based on dates. We only want 1990 records included
-                if they are within the range of selected dates.
-
-Maybe implement a structure to hold WB information and pass around
-instead of using global variables
-
-    wb=dict()
-    wb["name"]=wb_name
-    wb["instance"]=workbook
-    wb["sheets"]=dict()
-    wb["sheets"]["data_samples"] = dict()
-    wb["sheets"]["data_samples"]["row"] = ws_row_data_samples
-    wb["sheets"]["data_samples"]["instance"] = ws_data_samples
-    wb["sheets"]["annotations"] = dict()
-    wb["sheets"]["annotations"]["row"] = ws_row_data_samples
-    wb["sheets"]["annotations"]["instance"] = ws_data_samples
-    wb["sheets"]["modifiers"] = dict()
-    wb["sheets"]["modifiers"]["row"] = ws_row_data_samples
-    wb["sheets"]["modifiers"]["instance"] = ws_data_samples
-    wb["formats"]=dict()
-    wb["formats"]["lalign"]=lalign
-
 
 *********************************************************************************************************
 
 NOTE RE EPOCH OR 1990 DATE RECORD HANDLING
+
 Due to an, as yet unsolved, issue with the Quantum datalogger the time-of-day clock reset to
-01/01/1990 in late April. The TOD counter incremented for a while then reset and repeated this
+01/01/1990 in late April. The TOD counter incremented for a few minutes then reset and repeated this
 until I reset the TOD in the logger in June.
 
 This may well happen again so this code needs to be able to handle records with a TOD in the 1990
@@ -129,11 +121,12 @@ the interval if either record has an epoch datestamp.
 
 import pprint
 import os
+import sys
 import xlsxwriter
 from datetime import datetime
 import quantum_extraction_cfg as cfg
 
-loco_name = ""
+loco_number = ""
 old_page_number=0
 current_page_number=0
 old_record_date="None"
@@ -189,7 +182,7 @@ def main():
 
 def process_line(line):
     global old_page_number
-    global loco_name
+    global loco_number
     global wheel_diameter_qdp_inches
     global current_page_number
 
@@ -226,20 +219,34 @@ def process_line(line):
         old_page_number=current_page_number
         if "Locomotive Number" in line:
             words = line.split()
-            loco_name = words[-1]
+            loco_number = words[-1]
             return
+        # The wheel diameter adjustment factor is based on the wheel diameter reported from the input file
+        # combined with the actual wheel diameter defined in the configuration file. Because this code caters
+        # for multiple locomotives there will be a configuration entry for each, in a dictionary keyed by the
+        # loco number, obtained from the input file. If there is no loco number in the input file or there is no
+        # match in the configuration file then the code will stop.
         if cfg.speed_adjustment_factor == 0:
             if "Circumference" in line and "Diameter" in line:
                 words = line.split()
                 # pp.pprint(words)
+                # Check for wheel size entry in config dictionary
+                if loco_number == "":   # not set
+                    print("No locomotive number detected in the input file. Please check and set.")
+                    sys.exit(1)
+                if loco_number in cfg.wheel_dia_actual_mm:
+                    actual_wheel_dia_mm = cfg.wheel_dia_actual_mm[loco_number]
+                else:
+                    print("No wheel diameter defined in configuration file for locomotive "+loco_number)
+                    sys.exit(1)
                 wheel_diameter_qdp_inches = float(words[-1])  # wheel diameter according to the QDP software
-                cfg.speed_adjustment_factor = cfg.wheel_dia_actual_mm / (wheel_diameter_qdp_inches * 25.4)
+                cfg.speed_adjustment_factor = actual_wheel_dia_mm / (wheel_diameter_qdp_inches * 25.4)
                 # pp.pprint(cfg.speed_adjustment_factor)
                 return
         return  # We don't want anything else from page 1
 
 def create_workbook():
-    global loco_name
+    global loco_number
     global workbook
     global ws_data_samples
     global ws_row_data_samples
@@ -252,7 +259,7 @@ def create_workbook():
     global wheel_diameter_qdp_inches
 
 
-    wb_name = cfg.workbook_name + " " + loco_name + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
+    wb_name = cfg.workbook_name + " " + loco_number + " " + datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
     workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
     ws_data_samples = workbook.add_worksheet(cfg.worksheet_name)
     lalign = workbook.add_format({'align': 'left'})
@@ -260,9 +267,9 @@ def create_workbook():
     parts = os.path.split(cfg.source_file)
     ws_modifiers = workbook.add_worksheet("Runtime modifiers")
     ws_row_data_samples = write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder",
-                            "Locomotive " + loco_name + ". Source file " + parts[1])
+                            "Locomotive " + loco_number + ". Source file " + parts[1])
     ws_row_annotations = write_header_ann(workbook, ws_annotations,
-                        "Data extract from Quantum Data Recorder", loco_name)
+                        "Data extract from Quantum Data Recorder", loco_number)
     ws_row_modifiers = write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
     if cfg.filter_dates:
         ws_modifiers.write(ws_row_modifiers, 0,
@@ -521,7 +528,7 @@ def check_for_epoch_year(date):
     return False
 
 
-def write_header(wb, ws, text, loco_name):
+def write_header(wb, ws, text, loco_number):
     wb.set_size(1920, 1080)
     lalign = wb.add_format({'align': 'left'})
     ws.set_column('A:B', 15, lalign)
@@ -541,7 +548,7 @@ def write_header(wb, ws, text, loco_name):
     ws.freeze_panes(3, 0)
 
     """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0, 0, text + " : " + loco_name, header_format)
+    ws.write(0, 0, text + " : " + loco_number, header_format)
 
     for column, record in enumerate(cfg.headers):
         ws.write(1, column, record[0])
@@ -558,7 +565,7 @@ def write_header_modifiers(wb, ws, text):
     return 3
 
 
-def write_header_ann(wb, ws, text, loco_name):
+def write_header_ann(wb, ws, text, loco_number):
     lalign = wb.add_format({'align': 'left'})
     ws.set_column('A:B', 15, lalign)
     ws.set_column('C:C', 50, lalign)
@@ -567,7 +574,7 @@ def write_header_ann(wb, ws, text, loco_name):
     header_format_ann = wb.add_format({'font_size': 14, 'bold': True})
     ws.freeze_panes(3, 0)
     """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0, 0, text + " : " + loco_name, header_format_ann)
+    ws.write(0, 0, text + " : " + loco_number, header_format_ann)
     ws.write(1, 0, "Event Date", header_format_ann)
     ws.write(1, 1, "Event Time", header_format_ann)
     ws.write(1, 2, "Event Type", header_format_ann)

@@ -1,6 +1,6 @@
-# File extacted from Quantum Desktop Software
-# - print to PDF file to generate.
-source_file = 'input files/testa.txt'
+# File extracted from Quantum Desktop Software
+# - print to Generic Text file to generate.
+source_file = 'input files/codetest.txt'
 # source_file='sample1.pdf'
 # source_file='sample2.pdf'
 
@@ -15,7 +15,12 @@ ts_adjustment = 0
 # QDP software which uses a figure embedded in the logger (which will be in inches)
 # The combination of this value and the wheel diameter reported in the data logger
 # output is used to derive the speed adjustment factor.
-wheel_dia_actual_mm = 995
+#
+# There will be multiple instances of this entry, one per locomotive known to the system.
+# The values are stored in a dictionary, keyed with the locomotive number (as text)
+# If there is no valid var for the named loco then the script will stop.
+wheel_dia_actual_mm = {"844": 995, "845": 995}
+#wheel_dia_actual_mm = 995 - old version prior to 2025/02/13 change
 
 # Speed adjustment factor.
 # This will be the actual wheel diameter divided by the QDP reported diameter (converted to mm)
@@ -43,8 +48,8 @@ worksheet_name = "Data Extract"
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
 filter_dates = True
-start_timestamp = "2024/04/24 13:00:00"
-end_timestamp = "2024/04/24 14:30:00"
+start_timestamp = "2024/04/07 17:00:00"
+end_timestamp = "2024/12/12 18:00:00"
 
 # The data logger TOD clock is reverting to 1990 from time to time leading to
 # oddball sample times in the traces. If this flag is set to True then these
