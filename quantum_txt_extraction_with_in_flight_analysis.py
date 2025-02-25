@@ -81,6 +81,20 @@ March 2023	GJN	Initial Creation
                 The user should either fix the configuration file and/or manually edit the input file to
                 set the "Locomotive Number is         -      xxx" line,
 
+2025/02/25  GJN Add code to do rudimentary data analysis as records are processed. The initial cause for this
+                is the requirement to identify anomalous traction motor current readings with the throttle in IDLE
+                as part of a troubleshooting exercise. We found data samples where the throttle is in the IDLE position
+                but which contain non-zero TMC readings, in some cases very high readings. There is a lag between
+                commanding the idle position and the TMC decaying under the governor control, there's also the
+                possibility of contactor arcing.
+
+                We will implement a fixed length queue for events, to retain the last (n) events. When we hit an IDLE
+                sample with a non-zero TMC value (maybe over a certain threshold) we will then be able to print
+                (or add to a worksheet) the (n) events leading up to this event.
+
+                We will then continue to print IDLE, non-zero TMC, readings until either the TMC drops to zero or the throttle
+                goes out of idle. This will be controlled by a flag set globally?
+
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -119,12 +133,14 @@ the interval if either record has an epoch datestamp.
 
 """
 
-import pprint
+#import pprint
 import os
 import sys
 import xlsxwriter
+from collections import deque
 from datetime import datetime
 import quantum_extraction_cfg as cfg
+from quantum_extraction_cfg import ifa_recording
 
 loco_number = ""
 old_page_number=0
@@ -132,6 +148,9 @@ current_page_number=0
 old_record_date="None"
 old_record_time="None"
 writing_records_to_xls=True     # Only used when filtering records based on date.
+
+if cfg.in_flight_analysis_enabled:
+    previous_events_deque = deque(maxlen = cfg.ifa_deque_maxlen)    # This will hold (n) data points for analysis
 
 def main():
     # pp = pprint.PrettyPrinter(indent=4)
@@ -440,6 +459,12 @@ def process_sample(line):
                                        flags,
                                        record_date,
                                        record_time)
+
+    # If we are doing in flight analysis, add this record to the deque.
+    # Later we'll play more with this stuff.
+    if cfg.in_flight_analysis_enabled:
+        if ifa_recording:
+            previous_events_deque.append((record_date,record_time,mileage,speed,tmc,brake_pipe_pressure,brake_cylinder_pressure,throttle_position,flags))
     return
 
 def hide_columns(ws, headers):

@@ -90,3 +90,10 @@ headers = [("Date", True),
 # Worksheet protection string
 protect_string = "3801"
 protection_mode = {'select_locked_cells': True, "select_unlocked_cells": True, "sort": True, "autofilter": True}
+
+# In flight analysis code related variables
+in_flight_analysis_enabled = True
+ifa_deque_maxlen = 5               # Number of events to store in the queue
+ifa_tmc_threshold = 0               # Extract records with TMC values exceeding this value
+ifa_recording = True               # Set to true when we are in a run of records to be logged
+
