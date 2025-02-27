@@ -88,12 +88,14 @@ March 2023	GJN	Initial Creation
                 commanding the idle position and the TMC decaying under the governor control, there's also the
                 possibility of contactor arcing.
 
-                We will implement a fixed length queue for events, to retain the last (n) events. When we hit an IDLE
-                sample with a non-zero TMC value (maybe over a certain threshold) we will then be able to print
-                (or add to a worksheet) the (n) events leading up to this event.
+                We implement a fixed length queue for events, to retain the last (n) events. When we hit an IDLE
+                sample with a non-zero TMC value (or optionally, over a certain threshold) we will then log those
+                events, plus the events leading up to the event in a separate sheet in the workbook.
 
-                We will then continue to print IDLE, non-zero TMC, readings until either the TMC drops to zero or the throttle
-                goes out of idle. This will be controlled by a flag set globally?
+                We continue to log readings until either the TMC drops to zero or the throttle
+                goes out of idle. T
+
+                In addition, we highlight epoch year cells in the primary worksheet to draw attention to them
 
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
@@ -140,7 +142,7 @@ import xlsxwriter
 from collections import deque
 from datetime import datetime
 import quantum_extraction_cfg as cfg
-from quantum_extraction_cfg import ifa_recording
+
 
 loco_number = ""
 old_page_number=0
@@ -273,7 +275,13 @@ def create_workbook():
     global ws_row_annotations
     global ws_modifiers
     global ws_row_modifiers
+
+    if cfg.in_flight_analysis_enabled:
+        global ws_in_flight_analysis
+        global ws_row_in_flight_analysis
+
     global lalign
+    global cell_fill
     global wb_name
     global wheel_diameter_qdp_inches
 
@@ -282,6 +290,7 @@ def create_workbook():
     workbook = xlsxwriter.Workbook(wb_name, {'strings_to_numbers': True})
     ws_data_samples = workbook.add_worksheet(cfg.worksheet_name)
     lalign = workbook.add_format({'align': 'left'})
+    cell_fill = workbook.add_format({'bg_color': 'yellow'})
     ws_annotations = workbook.add_worksheet("Logger Events")
     parts = os.path.split(cfg.source_file)
     ws_modifiers = workbook.add_worksheet("Runtime modifiers")
@@ -313,6 +322,15 @@ def create_workbook():
     else:
         ws_modifiers.write(ws_row_modifiers, 0, "Epoch year (" + str(cfg.epoch_year) + ") dated records omitted")
         ws_row_modifiers += 1
+
+    if cfg.in_flight_analysis_enabled:
+        ws_in_flight_analysis = workbook.add_worksheet("Event Analysis")
+        ws_row_in_flight_analysis = write_header(workbook, ws_in_flight_analysis, "Event of interest analyis",
+                                           "Locomotive " + loco_number + ". Source file " + parts[1])
+        ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"Events will be flagged if the TMC value is over "+str(cfg.ifa_tmc_threshold)+" Amps with the throttle in IDLE")
+        ws_row_in_flight_analysis+=1
+        ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"The previous "+str(cfg.ifa_deque_maxlen)+" events will be shown. All subsequent events will also be shown until the selection criteria are no longer met")
+        ws_row_in_flight_analysis+=2
 
 
     return
@@ -429,6 +447,10 @@ def process_sample(line):
     record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
     # We want to filter out dates prior to or after a range of datestamps - use timestamp WITHOUT adjustments
     is_epoch_year_datestamp = check_for_epoch_year(record_date)
+    if is_epoch_year_datestamp:
+        fill = True
+    else:
+        fill = False
     if cfg.filter_dates:
         # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
         if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
@@ -458,13 +480,105 @@ def process_sample(line):
                                        throttle_position,
                                        flags,
                                        record_date,
-                                       record_time)
+                                       record_time,
+                                       fill,
+                                       False)
 
     # If we are doing in flight analysis, add this record to the deque.
     # Later we'll play more with this stuff.
     if cfg.in_flight_analysis_enabled:
-        if ifa_recording:
-            previous_events_deque.append((record_date,record_time,mileage,speed,tmc,brake_pipe_pressure,brake_cylinder_pressure,throttle_position,flags))
+        previous_events_deque.append((record_date,record_time,mileage,speed,tmc,brake_pipe_pressure,brake_cylinder_pressure,throttle_position,flags))
+        perform_in_flight_analysis()
+
+
+    return
+
+def perform_in_flight_analysis():
+
+
+    global ws_in_flight_analysis
+    global ws_row_in_flight_analysis
+
+    # At this stage the current data point has been appended to the deque, so we have up to (n-1) previous data points plus the current data point
+    # each data point is a tuple with the following members:
+    # 0 - date              5 - bp pressure
+    # 1 - time              6 - bc pressure
+    # 2 - mileage           7 - throttle position (1-8, ID, LO etc)
+    # 3 - speed             8 - binary flags
+    # 4 - tmc
+
+    # See if this data point contains an item of interest
+    current_dp = previous_events_deque[-1]
+    # If we are in an event of interest we need to write this data point to the output file irrespective of
+    # it's contents then check whether we reset the event of interest flag
+    if cfg.ifa_in_event_of_interest:
+        #print(current_dp)
+        if current_dp[7] != 'ID' or current_dp[4] == 0:
+            fill=False
+        else:
+            fill=True
+        ws_row_in_flight_analysis = write_record(ws_in_flight_analysis,
+                                           ws_row_in_flight_analysis,
+                                           current_dp[2],
+                                           current_dp[3],
+                                           current_dp[4],
+                                           current_dp[5],
+                                           current_dp[6],
+                                           current_dp[7],
+                                           current_dp[8],
+                                           current_dp[0],
+                                           current_dp[1],
+                                           False,
+                                                 fill)
+        # If the throttle leaves the idle position or the tmc drops to 0 then we are done with this event
+        if current_dp[7] != 'ID' or current_dp[4] == 0:
+            cfg.ifa_in_event_of_interest = False
+            ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow")
+            ws_row_in_flight_analysis += 2
+
+            print("EVENT TERMINATED\n")
+        return
+
+
+    # Check throttle position - we are only interested in Idle state
+    if current_dp[7] != 'ID':
+        return
+    # Now check the tmc value. If the threshold is set to > 0 then we are only interested in values greater than
+    # or equal to the threshold. If the threshold is zero then we want all non-zero IDLE events
+    if cfg.ifa_tmc_threshold != 0 and current_dp[4] < cfg.ifa_tmc_threshold:
+        return
+    if cfg.ifa_tmc_threshold == 0 and current_dp[4] == 0:
+        return
+
+    # We are now in an event of interest so we log all the events in the deque and set the flag
+    print("EVENT COMMENCED")
+    ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "Start of event flow")
+    ws_row_in_flight_analysis += 1
+
+    deque_len=len(previous_events_deque)
+    for index, datapoint in enumerate(previous_events_deque):
+        #print(datapoint)
+        if index == deque_len-1:
+            fill=True
+        else:
+            fill=False
+        ws_row_in_flight_analysis = write_record(ws_in_flight_analysis,
+                                           ws_row_in_flight_analysis,
+                                           datapoint[2],
+                                           datapoint[3],
+                                           datapoint[4],
+                                           datapoint[5],
+                                           datapoint[6],
+                                           datapoint[7],
+                                           datapoint[8],
+                                           datapoint[0],
+                                           datapoint[1],
+                                           False,
+                                                 fill)
+
+    cfg.ifa_in_event_of_interest = True
+
+
     return
 
 def hide_columns(ws, headers):
@@ -474,7 +588,7 @@ def hide_columns(ws, headers):
             ws.set_column(column, column, None, None, {'hidden': True})
 
 
-def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cylinder_pressure, throttle_position, flags, record_date, record_time):
+def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cylinder_pressure, throttle_position, flags, record_date, record_time, fill_year_cell,fill_tmc_cell):
     """ Write spreadsheet row, return updated row number """
 
     # Time - has a dash appended
@@ -499,8 +613,13 @@ def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cyl
     # Vigilance Control Alert acknowledge
     # Axle drive type
 
+
     ws_col = 0
-    ws.write_string(ws_row, ws_col, record_date)  # AUS Date stamp
+    if fill_year_cell:
+        ws.write_string(ws_row, ws_col, record_date,cell_fill)  # AUS Date stamp
+    else:
+        ws.write_string(ws_row, ws_col, record_date)  # AUS Date stamp
+
     ws_col += 1
     ws.write_string(ws_row, ws_col, record_time)  # Timestamp
     ws_col += 1
@@ -512,7 +631,10 @@ def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cyl
     # downloading the data via QDP but not when downloading via the QRST software.
     ws.write_number(ws_row, ws_col, round(speed * 1.6 * cfg.speed_adjustment_factor))
     ws_col += 1
-    ws.write_number(ws_row, ws_col, tmc)  # TMC
+    if fill_tmc_cell:
+        ws.write_number(ws_row, ws_col, tmc, cell_fill)  # TMC
+    else:
+        ws.write_number(ws_row, ws_col, tmc)  # TMC
     ws_col += 1
     ws.write_number(ws_row, ws_col, brake_pipe_pressure)  # Brake pipe pressure
     ws_col += 1

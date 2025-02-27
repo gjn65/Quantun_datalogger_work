@@ -1,6 +1,7 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
 source_file = 'input files/QEI20250224.txt'
+#source_file = 'input files/testinput.txt'
 # source_file='sample1.pdf'
 # source_file='sample2.pdf'
 
@@ -93,7 +94,7 @@ protection_mode = {'select_locked_cells': True, "select_unlocked_cells": True, "
 
 # In flight analysis code related variables
 in_flight_analysis_enabled = True
-ifa_deque_maxlen = 5               # Number of events to store in the queue
+ifa_deque_maxlen = 10               # Number of events to store in the queue
 ifa_tmc_threshold = 0               # Extract records with TMC values exceeding this value
-ifa_recording = True               # Set to true when we are in a run of records to be logged
+ifa_in_event_of_interest = False    # Set to true when we are in a run of records to be logged to the output file
 
