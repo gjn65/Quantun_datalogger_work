@@ -536,7 +536,7 @@ def perform_in_flight_analysis():
             ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow")
             ws_row_in_flight_analysis += 2
 
-            print("EVENT TERMINATED\n")
+            print("EVENT TERMINATED")
         return
 
 
