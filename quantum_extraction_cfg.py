@@ -1,6 +1,6 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
-source_file = 'input files/QEI20250224.txt'
+source_file = 'input files/20240707 to 20250223.txt'
 #source_file = 'input files/testinput.txt'
 # source_file='sample1.pdf'
 # source_file='sample2.pdf'
