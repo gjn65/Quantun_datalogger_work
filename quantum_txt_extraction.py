@@ -97,6 +97,8 @@ March 2023	GJN	Initial Creation
 
                 In addition, we highlight epoch year cells in the primary worksheet to draw attention to them
 
+2025/03/04  GJN hide unwnted columns in the in flight analysis worksheet. Set protection on all sheets
+
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -194,8 +196,12 @@ def main():
                 process_line(line)
 
     hide_columns(ws_data_samples, cfg.headers)
-    #   ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
-    #  ws_ann.protect(cfg.protect_string,cfg.protection_mode)
+    if cfg.in_flight_analysis_enabled:
+        hide_columns(ws_in_flight_analysis, cfg.headers)
+    ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
+    ws_ann.protect(cfg.protect_string,cfg.protection_mode)
+    if cfg.in_flight_analysis_enabled:
+        ws_in_flight_analysis.protect(cfg.protect_string, cfg.protection_mode)
     workbook.close()
     print("Written file : " + wb_name)
 
