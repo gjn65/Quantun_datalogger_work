@@ -97,8 +97,10 @@ March 2023	GJN	Initial Creation
 
                 In addition, we highlight epoch year cells in the primary worksheet to draw attention to them
 
-2025/03/04  GJN hide unwnted columns in the in flight analysis worksheet. Set protection on all sheets
+2025/03/04  GJN hide unwanted columns in the in flight analysis worksheet. Set protection on all sheets
 
+2025/03/06  GJN Add flag count sanity check to ensure the input file was printed with the correct (all) number of
+                fields.
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -115,7 +117,7 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 
 NOTE RE EPOCH OR 1990 DATE RECORD HANDLING
 
-Due to an, as yet unsolved, issue with the Quantum datalogger the time-of-day clock reset to
+Due to an as yet unsolved, issue with the Quantum datalogger the time-of-day clock reset to
 01/01/1990 in late April. The TOD counter incremented for a few minutes then reset and repeated this
 until I reset the TOD in the logger in June.
 
@@ -199,7 +201,8 @@ def main():
     if cfg.in_flight_analysis_enabled:
         hide_columns(ws_in_flight_analysis, cfg.headers)
     ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
-    ws_ann.protect(cfg.protect_string,cfg.protection_mode)
+    ws_annotations.protect(cfg.protect_string,cfg.protection_mode)
+    ws_modifiers.protect(cfg.protect_string,cfg.protection_mode)
     if cfg.in_flight_analysis_enabled:
         ws_in_flight_analysis.protect(cfg.protect_string, cfg.protection_mode)
     workbook.close()
@@ -337,6 +340,10 @@ def create_workbook():
         ws_row_in_flight_analysis+=1
         ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"The previous "+str(cfg.ifa_deque_maxlen)+" events will be shown. All subsequent events will also be shown until the selection criteria are no longer met")
         ws_row_in_flight_analysis+=2
+        ws_modifiers.write(ws_row_modifiers,0,"Event analysis: Events will be flagged if the TMC value is over "+str(cfg.ifa_tmc_threshold)+" Amps with the throttle in IDLE")
+        ws_row_modifiers+=1
+        ws_modifiers.write(ws_row_modifiers,0,"Event analysis: The previous "+str(cfg.ifa_deque_maxlen)+" events will be shown. All subsequent events will also be shown until the selection criteria are no longer met")
+        ws_row_modifiers+=1
 
 
     return
@@ -448,6 +455,12 @@ def process_sample(line):
     # Vigilance Control Alert Acknowledged
     # Axle Drive TypeError
     flags = parts[3:]
+    # Sanity check the flags to ensure we have the correct number. If the print setup is
+    # wrong in the QDP software then this may occur. If this were allowed to go through then
+    # the column headers for the flags would be wrong!
+    if len(flags) != cfg.number_of_flags_expected:
+        print("FATAL: Expected "+str(cfg.number_of_flags_expected)+" flags but received "+str(len(flags))+" in line ["+line+"]. Processing abandoned")
+        sys.exit(1)
 
 
     record_ts_epoch_seconds = get_epoch(record_date + " " + record_time)
@@ -510,13 +523,13 @@ def perform_in_flight_analysis():
     # 0 - date              5 - bp pressure
     # 1 - time              6 - bc pressure
     # 2 - mileage           7 - throttle position (1-8, ID, LO etc)
-    # 3 - speed             8 - binary flags
+    # 3 - speed             8 - binary flags (11 off)
     # 4 - tmc
 
     # See if this data point contains an item of interest
     current_dp = previous_events_deque[-1]
     # If we are in an event of interest we need to write this data point to the output file irrespective of
-    # it's contents then check whether we reset the event of interest flag
+    # its contents then check whether we reset the event of interest flag
     if cfg.ifa_in_event_of_interest:
         #print(current_dp)
         if current_dp[7] != 'ID' or current_dp[4] == 0:

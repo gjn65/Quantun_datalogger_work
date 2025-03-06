@@ -1,6 +1,6 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
-source_file = 'input files/20240707 to 20250223.txt'
+source_file = 'input files/QEI20230223_All_fields.txt'
 #source_file = 'input files/20231119 to 20240721.txt'
 #source_file = 'input files/testinput.txt'
 # source_file='sample1.pdf'
@@ -88,6 +88,9 @@ headers = [("Date", True),
            ("VS Ack", False),
            ("Axle Drive", False),
            ]
+
+# Used to sanity check the input and ensure we have the printing set up correctly in the Quantum Desktop Software
+number_of_flags_expected=11
 
 # Worksheet protection string
 protect_string = "3801"
