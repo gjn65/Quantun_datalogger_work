@@ -220,7 +220,7 @@ def main():
     ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events written")
     ws_row_modifiers += 1
     if cfg.in_flight_analysis_enabled:
-        ws_modifiers.write(ws_row_modifiers, 0,"Totals: "+ str(count_in_flight_analysis)+" analysis streams written")
+        ws_modifiers.write(ws_row_modifiers, 0,"Totals: " + str(count_in_flight_analysis)+" analysis streams written")
         ws_row_modifiers += 1
 
 
@@ -583,10 +583,9 @@ def perform_in_flight_analysis():
         # If the throttle leaves the idle position or the tmc drops to 0 then we are done with this event
         if current_dp[7] != 'ID' or current_dp[4] == 0:
             cfg.ifa_in_event_of_interest = False
-            ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow")
+            ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow "+str(count_in_flight_analysis))
             ws_row_in_flight_analysis += 2
-            count_in_flight_analysis+=1
-            print("EVENT TERMINATED")
+            print("EVENT "+str(count_in_flight_analysis)+" TERMINATED")
         return
 
 
@@ -601,8 +600,9 @@ def perform_in_flight_analysis():
         return
 
     # We are now in an event of interest so we log all the events in the deque and set the flag
-    print("EVENT COMMENCED")
-    ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "Start of event flow")
+    count_in_flight_analysis+=1
+    print("EVENT "+str(count_in_flight_analysis)+" COMMENCED")
+    ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "Start of event flow "+str(count_in_flight_analysis))
     ws_row_in_flight_analysis += 1
 
     deque_len=len(previous_events_deque)
