@@ -488,7 +488,7 @@ def process_sample(line):
         # valid date records.
         writing_records_to_xls=True
 
-    # Write record to spreadsheet
+     # Write record to spreadsheet
     ws_row_data_samples = write_record(ws_data_samples,
                                        ws_row_data_samples,
                                        mileage,
@@ -547,7 +547,7 @@ def perform_in_flight_analysis():
                                            current_dp[8],
                                            current_dp[0],
                                            current_dp[1],
-                                           False,
+                                         False,
                                                  fill)
         # If the throttle leaves the idle position or the tmc drops to 0 then we are done with this event
         if current_dp[7] != 'ID' or current_dp[4] == 0:
@@ -592,7 +592,7 @@ def perform_in_flight_analysis():
                                            datapoint[8],
                                            datapoint[0],
                                            datapoint[1],
-                                           False,
+                                    False,
                                                  fill)
 
     cfg.ifa_in_event_of_interest = True
@@ -665,6 +665,7 @@ def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cyl
     for flag in flags:
         ws.write(ws_row, ws_col, "Y" if flag == "1" else "N")
         ws_col += 1
+
     ws_row += 1
     return ws_row
 
