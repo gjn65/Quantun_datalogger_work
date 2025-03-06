@@ -164,11 +164,22 @@ def main():
     global wb_name
     global workbook
 
+    global count_data_samples
+    if cfg.in_flight_analysis_enabled:
+        global count_in_flight_analysis
+    global count_epoch_events
+
+    global ws_row_modifiers
+
     global start_timestamp_epoch_seconds
     global end_timestamp_epoch_seconds
     start_timestamp_epoch_seconds = get_epoch(cfg.start_timestamp)
     end_timestamp_epoch_seconds = get_epoch(cfg.end_timestamp)
 
+    count_data_samples=0
+    count_epoch_events=0
+    if cfg.in_flight_analysis_enabled:
+        count_in_flight_analysis=0
 
     if cfg.filter_dates:
         print("Record filtering enabled")
@@ -196,6 +207,22 @@ def main():
             lines = raw_line.split('\x0c')
             for line in lines:
                 process_line(line)
+
+    print("\nProcessing statistics")
+    print("=====================")
+    print(str(count_data_samples)+" data points written")
+    print(str(count_epoch_events)+" epoch dated events written")
+    if cfg.in_flight_analysis_enabled:
+        print(str(count_in_flight_analysis)+" analysis streams written")
+    print("")
+    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_data_samples)+" data points written")
+    ws_row_modifiers += 1
+    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events written")
+    ws_row_modifiers += 1
+    if cfg.in_flight_analysis_enabled:
+        ws_modifiers.write(ws_row_modifiers, 0,"Totals: "+ str(count_in_flight_analysis)+" analysis streams written")
+        ws_row_modifiers += 1
+
 
     hide_columns(ws_data_samples, cfg.headers)
     if cfg.in_flight_analysis_enabled:
@@ -402,6 +429,8 @@ def process_sample(line):
     global old_record_time
     global ws_data_samples
     global ws_row_data_samples
+    global count_data_samples
+    global count_epoch_events
     global writing_records_to_xls           # Only used when filtering records on date
 
     time_position = 0
@@ -468,6 +497,7 @@ def process_sample(line):
     is_epoch_year_datestamp = check_for_epoch_year(record_date)
     if is_epoch_year_datestamp:
         fill = True
+        count_epoch_events+=1
     else:
         fill = False
     if cfg.filter_dates:
@@ -509,6 +539,7 @@ def process_sample(line):
         previous_events_deque.append((record_date,record_time,mileage,speed,tmc,brake_pipe_pressure,brake_cylinder_pressure,throttle_position,flags))
         perform_in_flight_analysis()
 
+    count_data_samples+=1
 
     return
 
@@ -517,7 +548,7 @@ def perform_in_flight_analysis():
 
     global ws_in_flight_analysis
     global ws_row_in_flight_analysis
-
+    global count_in_flight_analysis
     # At this stage the current data point has been appended to the deque, so we have up to (n-1) previous data points plus the current data point
     # each data point is a tuple with the following members:
     # 0 - date              5 - bp pressure
@@ -554,7 +585,7 @@ def perform_in_flight_analysis():
             cfg.ifa_in_event_of_interest = False
             ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow")
             ws_row_in_flight_analysis += 2
-
+            count_in_flight_analysis+=1
             print("EVENT TERMINATED")
         return
 
