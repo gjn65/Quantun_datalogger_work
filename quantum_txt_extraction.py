@@ -155,6 +155,10 @@ old_record_date="None"
 old_record_time="None"
 writing_records_to_xls=True     # Only used when filtering records based on date.
 
+first_datestamp_written=[None,None]
+last_non_epoch_datestamp_written=[None,None]
+last_datestamp_written=[None,None]
+
 if cfg.in_flight_analysis_enabled:
     previous_events_deque = deque(maxlen = cfg.ifa_deque_maxlen)    # This will hold (n) data points for analysis
 
@@ -163,6 +167,10 @@ def main():
 
     global wb_name
     global workbook
+
+    global first_datestamp_written
+    global last_non_epoch_datestamp_written
+    global last_datestamp_written
 
     global count_data_samples
     if cfg.in_flight_analysis_enabled:
@@ -215,6 +223,13 @@ def main():
     if cfg.in_flight_analysis_enabled:
         print(str(count_in_flight_analysis)+" analysis streams written")
     print("")
+    print("First record written = "+first_datestamp_written[0]+" "+first_datestamp_written[1])
+    print("Last record written =  "+last_datestamp_written[0]+" "+last_datestamp_written[1])
+    if (last_non_epoch_datestamp_written[0] != last_datestamp_written [0]) and \
+        (last_non_epoch_datestamp_written[1] != last_datestamp_written[1]):
+        print("Last non-epoch record written =  " + last_non_epoch_datestamp_written[0] + " " + last_non_epoch_datestamp_written[1])
+
+
     ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_data_samples)+" data points written")
     ws_row_modifiers += 1
     ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events written")
@@ -432,6 +447,9 @@ def process_sample(line):
     global count_data_samples
     global count_epoch_events
     global writing_records_to_xls           # Only used when filtering records on date
+    global first_datestamp_written
+    global last_non_epoch_datestamp_written
+    global last_datestamp_written
 
     time_position = 0
     time_length = 8
@@ -518,7 +536,10 @@ def process_sample(line):
         # valid date records.
         writing_records_to_xls=True
 
-     # Write record to spreadsheet
+    # Write record to spreadsheet
+    if first_datestamp_written[0]==None:
+        first_datestamp_written[0]=record_date
+        first_datestamp_written[1]=record_time
     ws_row_data_samples = write_record(ws_data_samples,
                                        ws_row_data_samples,
                                        mileage,
@@ -532,6 +553,12 @@ def process_sample(line):
                                        record_time,
                                        fill,
                                        False)
+
+    if not is_epoch_year_datestamp:
+        last_non_epoch_datestamp_written[0] = record_date
+        last_non_epoch_datestamp_written[1] = record_time
+    last_datestamp_written[0]=record_date
+    last_datestamp_written[1]=record_time
 
     # If we are doing in flight analysis, add this record to the deque.
     # Later we'll play more with this stuff.
