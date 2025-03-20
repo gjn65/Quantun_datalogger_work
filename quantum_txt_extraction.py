@@ -585,30 +585,30 @@ def perform_in_flight_analysis():
     # 4 - tmc
 
     # See if this data point contains an item of interest
-    current_dp = previous_events_deque[-1]
+    current_data_point = previous_events_deque[-1]
     # If we are in an event of interest we need to write this data point to the output file irrespective of
     # its contents then check whether we reset the event of interest flag
     if cfg.ifa_in_event_of_interest:
-        #print(current_dp)
-        if current_dp[7] != 'ID' or current_dp[4] == 0:
+        #print(current_data_point)
+        if current_data_point[7] != 'ID' or current_data_point[4] == 0:
             fill=False
         else:
             fill=True
         ws_row_in_flight_analysis = write_record(ws_in_flight_analysis,
                                            ws_row_in_flight_analysis,
-                                           current_dp[2],
-                                           current_dp[3],
-                                           current_dp[4],
-                                           current_dp[5],
-                                           current_dp[6],
-                                           current_dp[7],
-                                           current_dp[8],
-                                           current_dp[0],
-                                           current_dp[1],
+                                           current_data_point[2],
+                                           current_data_point[3],
+                                           current_data_point[4],
+                                           current_data_point[5],
+                                           current_data_point[6],
+                                           current_data_point[7],
+                                           current_data_point[8],
+                                           current_data_point[0],
+                                           current_data_point[1],
                                          False,
                                                  fill)
         # If the throttle leaves the idle position or the tmc drops to 0 then we are done with this event
-        if current_dp[7] != 'ID' or current_dp[4] == 0:
+        if current_data_point[7] != 'ID' or current_data_point[4] == 0:
             cfg.ifa_in_event_of_interest = False
             ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow "+str(count_in_flight_analysis))
             ws_row_in_flight_analysis += 2
@@ -617,13 +617,13 @@ def perform_in_flight_analysis():
 
 
     # Check throttle position - we are only interested in Idle state
-    if current_dp[7] != 'ID':
+    if current_data_point[7] != 'ID':
         return
     # Now check the tmc value. If the threshold is set to > 0 then we are only interested in values greater than
     # or equal to the threshold. If the threshold is zero then we want all non-zero IDLE events
-    if cfg.ifa_tmc_threshold != 0 and current_dp[4] < cfg.ifa_tmc_threshold:
+    if cfg.ifa_tmc_threshold != 0 and current_data_point[4] < cfg.ifa_tmc_threshold:
         return
-    if cfg.ifa_tmc_threshold == 0 and current_dp[4] == 0:
+    if cfg.ifa_tmc_threshold == 0 and current_data_point[4] == 0:
         return
 
     # We are now in an event of interest so we log all the events in the deque and set the flag
@@ -633,23 +633,23 @@ def perform_in_flight_analysis():
     ws_row_in_flight_analysis += 1
 
     deque_len=len(previous_events_deque)
-    for index, datapoint in enumerate(previous_events_deque):
-        #print(datapoint)
+    for index, preceding_data_point in enumerate(previous_events_deque):
+        #print(preceding_data_point)
         if index == deque_len-1:
             fill=True
         else:
             fill=False
         ws_row_in_flight_analysis = write_record(ws_in_flight_analysis,
                                            ws_row_in_flight_analysis,
-                                           datapoint[2],
-                                           datapoint[3],
-                                           datapoint[4],
-                                           datapoint[5],
-                                           datapoint[6],
-                                           datapoint[7],
-                                           datapoint[8],
-                                           datapoint[0],
-                                           datapoint[1],
+                                           preceding_data_point[2],
+                                           preceding_data_point[3],
+                                           preceding_data_point[4],
+                                           preceding_data_point[5],
+                                           preceding_data_point[6],
+                                           preceding_data_point[7],
+                                           preceding_data_point[8],
+                                           preceding_data_point[0],
+                                           preceding_data_point[1],
                                     False,
                                                  fill)
 

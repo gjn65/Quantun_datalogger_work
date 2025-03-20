@@ -97,8 +97,12 @@ protect_string = "3801"
 protection_mode = {'select_locked_cells': True, "select_unlocked_cells": True, "sort": True, "autofilter": True}
 
 # In flight analysis code related variables
+# Monitors incidents where the TMC exceeds a threshold - defined below - whilst the throttle is in the IDLE position.
+# If such an event is detected then that event plus the events leading up to it are written to a page in the
+# workbook. The number of lead-in events and the TMC threshold are defined below.
+# The detection can be switched off by setting the enabled switch to False.
 in_flight_analysis_enabled = True
 ifa_deque_maxlen = 10               # Number of events to store in the queue
 ifa_tmc_threshold = 0               # Extract records with TMC values exceeding this value
-ifa_in_event_of_interest = False    # Set to true when we are in a run of records to be logged to the output file
+ifa_in_event_of_interest = False    # Set to true when we are in a run of records to be logged to the output file - flag is maintained by the code, not user set
 
