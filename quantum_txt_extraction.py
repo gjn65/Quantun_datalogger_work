@@ -102,6 +102,12 @@ March 2023	GJN	Initial Creation
 2025/03/06  GJN Add flag count sanity check to ensure the input file was printed with the correct (all) number of
                 fields.
 
+2025/7/20   GJN Add code to optionally suppress events where the locomotive is stationary for a certain number of events
+                and there is no traction motor current
+                Fix bug in write_annotations where row count was only incremented for a power related event in the logger 
+                events sheet, thus overwriting other events such as laptop connects - these still showed up in the events
+                sheet though.
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -159,6 +165,14 @@ first_datestamp_written=[None,None]
 last_non_epoch_datestamp_written=[None,None]
 last_datestamp_written=[None,None]
 
+previous_event_speed=-1 # Used to track loco stationary event sequences
+previous_event_tmc=-1
+suppressed_stationary_event_count=0
+first_suppressed_timestamp=""
+last_suppressed_timestamp=""
+first_suppressed_row=0
+last_suppressed_row=0
+
 if cfg.in_flight_analysis_enabled:
     previous_events_deque = deque(maxlen = cfg.ifa_deque_maxlen)    # This will hold (n) data points for analysis
 
@@ -176,6 +190,7 @@ def main():
     if cfg.in_flight_analysis_enabled:
         global count_in_flight_analysis
     global count_epoch_events
+    global count_suppressed_events
 
     global ws_row_modifiers
 
@@ -186,6 +201,7 @@ def main():
 
     count_data_samples=0
     count_epoch_events=0
+    count_suppressed_events=0
     if cfg.in_flight_analysis_enabled:
         count_in_flight_analysis=0
 
@@ -204,6 +220,10 @@ def main():
         print("Timestamps adjustment factor is " + str(cfg.ts_adjustment) + " seconds")
     else:
         print("No timestamp adjustment in force")
+    if cfg.suppress_stationary_events:
+        print("Stationary loco events will be suppressed")
+    else:
+        print("Stationary loco events are included in report")
     print("Input = " + cfg.source_file)
 
     with open(cfg.source_file) as file:
@@ -218,10 +238,11 @@ def main():
 
     print("\nProcessing statistics")
     print("=====================")
-    print(str(count_data_samples)+" data points written")
-    print(str(count_epoch_events)+" epoch dated events written")
+    print(str(count_data_samples)+" data points processed")
+    print(str(count_epoch_events)+" epoch dated events processed")
     if cfg.in_flight_analysis_enabled:
-        print(str(count_in_flight_analysis)+" analysis streams written")
+        print(str(count_in_flight_analysis)+" analysis streams processed")
+    print(str(count_suppressed_events) + " stationary loco events suppressed")
     print("")
     print("First record written = "+first_datestamp_written[0]+" "+first_datestamp_written[1])
     print("Last record written =  "+last_datestamp_written[0]+" "+last_datestamp_written[1])
@@ -230,13 +251,15 @@ def main():
         print("Last non-epoch record written =  " + last_non_epoch_datestamp_written[0] + " " + last_non_epoch_datestamp_written[1])
 
 
-    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_data_samples)+" data points written")
+    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_data_samples)+" data points processed")
     ws_row_modifiers += 1
-    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events written")
+    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events processed")
     ws_row_modifiers += 1
     if cfg.in_flight_analysis_enabled:
-        ws_modifiers.write(ws_row_modifiers, 0,"Totals: " + str(count_in_flight_analysis)+" analysis streams written")
+        ws_modifiers.write(ws_row_modifiers, 0,"Totals: " + str(count_in_flight_analysis)+" analysis streams processed")
         ws_row_modifiers += 1
+    ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_suppressed_events)+" stationary loco events suppressed")
+    ws_row_modifiers += 1
 
 
     hide_columns(ws_data_samples, cfg.headers)
@@ -275,7 +298,7 @@ def process_line(line):
         if line[0].isnumeric():  # Data sample lines are the only ones starting with a digit
             process_sample(line)
         else:
-            write_annotation(line)
+            write_annotation(line,True)
 
         if current_page_number != old_page_number:
             old_page_number=current_page_number
@@ -387,10 +410,14 @@ def create_workbook():
         ws_modifiers.write(ws_row_modifiers,0,"Event analysis: The previous "+str(cfg.ifa_deque_maxlen)+" events will be shown. All subsequent events will also be shown until the selection criteria are no longer met")
         ws_row_modifiers+=1
 
+    if cfg.suppress_stationary_events:
+        ws_modifiers.write(ws_row_modifiers, 0,
+            "Events where locomotive is stationary (speed = 0 kph and tmc = 0) are suppressed.")
+        ws_row_modifiers += 1
 
     return
 
-def write_annotation(line):
+def write_annotation(line,write_to_logger_event_sheet):
     global start_timestamp_epoch_seconds
     global end_timestamp_epoch_seconds
     global ws_data_samples
@@ -418,6 +445,10 @@ def write_annotation(line):
     ws_data_samples.write(ws_row_data_samples, 2, ' '.join(words[:-2]), lalign)
     ws_row_data_samples += 1
 
+    if not write_to_logger_event_sheet:  # only write to data samples sheet.
+        return
+
+
     # Calculate offset between this annotation and the previous record.
     # If either date is in the epoch period then don't do this as it makes no sense
     if old_record_date != "None" and not check_for_epoch_year(old_record_date) and not check_for_epoch_year(record_date):
@@ -435,7 +466,7 @@ def write_annotation(line):
         ws_annotations.write(ws_row_annotations, 3, old_record_date)
         ws_annotations.write(ws_row_annotations, 4, old_record_time)
         ws_annotations.write(ws_row_annotations, 5, offset)
-        ws_row_annotations += 1
+    ws_row_annotations += 1
 
     return
 
@@ -450,6 +481,13 @@ def process_sample(line):
     global first_datestamp_written
     global last_non_epoch_datestamp_written
     global last_datestamp_written
+    global previous_event_speed
+    global previous_event_tmc
+    global suppressed_stationary_event_count
+    global in_suppression_mode
+    global count_suppressed_events
+    global first_suppressed_timestamp
+    global last_suppressed_timestamp
 
     time_position = 0
     time_length = 8
@@ -540,7 +578,29 @@ def process_sample(line):
     if first_datestamp_written[0]==None:
         first_datestamp_written[0]=record_date
         first_datestamp_written[1]=record_time
-    ws_row_data_samples = write_record(ws_data_samples,
+
+    write_this_record=True
+    
+    # speed is zero, previous speed was zero and we are suppressing stationary events
+    # don't write this record to the sheet. increment the counter
+    if cfg.suppress_stationary_events and speed==0 and previous_event_speed==0 and tmc==0 and previous_event_tmc==0:
+        if suppressed_stationary_event_count==0:
+            first_suppressed_timestamp=record_time
+        suppressed_stationary_event_count+=1
+        last_suppressed_timestamp=record_time
+        write_this_record=False
+
+
+    # speed is not zero, previous speed was zero and we are suppressing stationary events
+    # write this record to the sheet after reporting the gap in events...
+    if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0):
+        if suppressed_stationary_event_count!=0:
+            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive events with speed = 0 and tmc = 0 from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
+            count_suppressed_events+=suppressed_stationary_event_count
+        suppressed_stationary_event_count=0
+
+    if write_this_record:
+        ws_row_data_samples = write_record(ws_data_samples,
                                        ws_row_data_samples,
                                        mileage,
                                        speed,
@@ -553,6 +613,8 @@ def process_sample(line):
                                        record_time,
                                        fill,
                                        False)
+    previous_event_speed=speed
+    previous_event_tmc=tmc
 
     if not is_epoch_year_datestamp:
         last_non_epoch_datestamp_written[0] = record_date

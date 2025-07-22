@@ -1,6 +1,6 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
-source_file = 'input files/QEI20230223_All_fields.txt'
+source_file = 'input files/JULY2025.prn'
 #source_file = 'input files/20231119 to 20240721.txt'
 #source_file = 'input files/testinput.txt'
 # source_file='sample1.pdf'
@@ -49,9 +49,9 @@ worksheet_name = "Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-filter_dates = False
-start_timestamp = "2024/04/07 17:00:00"
-end_timestamp = "2024/12/12 18:00:00"
+filter_dates = True
+start_timestamp = "2025/07/09 00:00:00"
+end_timestamp = "2025/07/09 23:59:59"
 
 # The data logger TOD clock is reverting to 1990 from time to time leading to
 # oddball sample times in the traces. If this flag is set to True then these
@@ -106,3 +106,9 @@ ifa_deque_maxlen = 10               # Number of events to store in the queue
 ifa_tmc_threshold = 0               # Extract records with TMC values exceeding this value
 ifa_in_event_of_interest = False    # Set to true when we are in a run of records to be logged to the output file - flag is maintained by the code, not user set
 
+# Suppress stationary loco events
+# If set to True, events with a speed of 0 kph are suppressed - the 0 speed event leading into and exiting from
+# such a run of stationary events are written to the spreadsheet with a notation written between them to indicate
+# the case.
+# If set to False then all events are written out
+suppress_stationary_events=True
