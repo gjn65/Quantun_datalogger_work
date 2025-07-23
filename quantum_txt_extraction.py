@@ -108,6 +108,9 @@ March 2023	GJN	Initial Creation
                 events sheet, thus overwriting other events such as laptop connects - these still showed up in the events
                 sheet though.
 
+2025/07/23  GJN Update stationary loco detection code to add Throttle Position in ID (Idle) as a third criteria for an
+                idle locomotive
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -115,7 +118,7 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 	seen in the data were caused by spurious voltages appearing on the dynamic brake
 	signal leads connected to the MU cable in 844's electrical cabinet. The presence
 	of +74VDC on these wires masked the correct throttle settings. (Refer to the TP
-	truth table in the Quantum Speedometer manuai). We disconnected these 2 signal feeds
+	truth table in the Quantum Speedometer manual). We disconnected these 2 signal feeds
 	into the data logger in June/July 2023 to fix this problem
 
 
@@ -134,11 +137,11 @@ deny writing epoch records to the spreadsheet.
 Also, when filtering records to those between 2 date/times - we need to include epoch records
 within those 2 bounds but exclude epoch records prior to and subsequent to the bounds. Note
 that epoch dated records trailing a block of "in-date" records will be recorded until we reach
-a non-eopch, out-of-date, record - this is because we cannot tell, when reading an epoch record,
+a non-epoch, out-of-date, record - this is because we cannot tell, when reading an epoch record,
 whether the next non-epoch record somewhere further in the file is within or without the desired
 range of dates.
 
-Finally, wnen calculating the time between annotation records (non data records), we cannot calculate
+Finally, when calculating the time between annotation records (non data records), we cannot calculate
 the interval if either record has an epoch datestamp.
 
 *********************************************************************************************************
@@ -167,11 +170,11 @@ last_datestamp_written=[None,None]
 
 previous_event_speed=-1 # Used to track loco stationary event sequences
 previous_event_tmc=-1
+previous_throttle_position=""
 suppressed_stationary_event_count=0
 first_suppressed_timestamp=""
 last_suppressed_timestamp=""
-first_suppressed_row=0
-last_suppressed_row=0
+
 
 if cfg.in_flight_analysis_enabled:
     previous_events_deque = deque(maxlen = cfg.ifa_deque_maxlen)    # This will hold (n) data points for analysis
@@ -294,7 +297,7 @@ def process_line(line):
         if skip_line_found(line):
             return
 
-        # Data lines begin with an integer (1st character in timestmp)
+        # Data lines begin with an integer (1st character in timestamp)
         if line[0].isnumeric():  # Data sample lines are the only ones starting with a digit
             process_sample(line)
         else:
@@ -399,7 +402,7 @@ def create_workbook():
 
     if cfg.in_flight_analysis_enabled:
         ws_in_flight_analysis = workbook.add_worksheet("Event Analysis")
-        ws_row_in_flight_analysis = write_header(workbook, ws_in_flight_analysis, "Event of interest analyis",
+        ws_row_in_flight_analysis = write_header(workbook, ws_in_flight_analysis, "Event of interest analysis",
                                            "Locomotive " + loco_number + ". Source file " + parts[1])
         ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"Events will be flagged if the TMC value is over "+str(cfg.ifa_tmc_threshold)+" Amps with the throttle in IDLE")
         ws_row_in_flight_analysis+=1
@@ -488,6 +491,8 @@ def process_sample(line):
     global count_suppressed_events
     global first_suppressed_timestamp
     global last_suppressed_timestamp
+    global previous_throttle_position
+
 
     time_position = 0
     time_length = 8
@@ -560,8 +565,8 @@ def process_sample(line):
         # Timestamp is epoch year and epoch year timestamps are not allowed then skip the write step
         if is_epoch_year_datestamp and not cfg.epoch_timestamps_allowed:
             return
-        # Timestamp is epoch year but we are not currently writing records to the woerkbook as they
-        # are outside of the required date range
+        # Timestamp is epoch year, but we are not currently writing records to the workbook as they
+        # are outside the required date range
         if is_epoch_year_datestamp and not writing_records_to_xls:
             return
         # Timestamp is NOT an epoch year and record timestamp is outside desired range then skip the write step
@@ -581,9 +586,9 @@ def process_sample(line):
 
     write_this_record=True
     
-    # speed is zero, previous speed was zero and we are suppressing stationary events
+    # speed is zero, previous speed was zero, TP - ID(le) and we are suppressing stationary events
     # don't write this record to the sheet. increment the counter
-    if cfg.suppress_stationary_events and speed==0 and previous_event_speed==0 and tmc==0 and previous_event_tmc==0:
+    if cfg.suppress_stationary_events and speed==0 and previous_event_speed==0 and tmc==0 and previous_event_tmc==0 and throttle_position=="ID" and previous_throttle_position=="ID":
         if suppressed_stationary_event_count==0:
             first_suppressed_timestamp=record_time
         suppressed_stationary_event_count+=1
@@ -591,11 +596,11 @@ def process_sample(line):
         write_this_record=False
 
 
-    # speed is not zero, previous speed was zero and we are suppressing stationary events
+    # speed is not zero, previous speed was zero, and we are suppressing stationary events
     # write this record to the sheet after reporting the gap in events...
-    if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0):
+    if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0) or (throttle_position!="ID" and previous_throttle_position=="ID"):
         if suppressed_stationary_event_count!=0:
-            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive events with speed = 0 and tmc = 0 from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
+            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive events with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
             count_suppressed_events+=suppressed_stationary_event_count
         suppressed_stationary_event_count=0
 
@@ -615,6 +620,7 @@ def process_sample(line):
                                        False)
     previous_event_speed=speed
     previous_event_tmc=tmc
+    previous_throttle_position=throttle_position
 
     if not is_epoch_year_datestamp:
         last_non_epoch_datestamp_written[0] = record_date
@@ -642,7 +648,7 @@ def perform_in_flight_analysis():
     # each data point is a tuple with the following members:
     # 0 - date              5 - bp pressure
     # 1 - time              6 - bc pressure
-    # 2 - mileage           7 - throttle position (1-8, ID, LO etc)
+    # 2 - mileage           7 - throttle position (1-8, ID, LO etc.)
     # 3 - speed             8 - binary flags (11 off)
     # 4 - tmc
 
@@ -791,8 +797,8 @@ def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cyl
 
 
 def translate_tp(tp):
-    """ take a throtle position. If it's a number, then return that number.
-        If it's a letter then returnn the corrsponding text """
+    """ take a throttle position. If it's a number, then return that number.
+        If it's a letter then returnn the corresponding text """
     if tp.isnumeric():
         return tp
     if tp.upper() in cfg.tp_translations.keys():
