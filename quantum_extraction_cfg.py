@@ -106,8 +106,8 @@ ifa_deque_maxlen = 10               # Number of events to store in the queue
 ifa_tmc_threshold = 0               # Extract records with TMC values exceeding this value
 ifa_in_event_of_interest = False    # Set to true when we are in a run of records to be logged to the output file - flag is maintained by the code, not user set
 
-# Suppress stationary loco events
-# If set to True, events with a speed of 0 kph are suppressed - the 0 speed event leading into and exiting from
+# Hide stationary loco events
+# If set to True, events with a speed of 0 kph and tmc - 0 amps and throttle position in idle are hidden - the 0 speed event leading into and exiting from
 # such a run of stationary events are written to the spreadsheet with a notation written between them to indicate
 # the case.
 # If set to False then all events are written out

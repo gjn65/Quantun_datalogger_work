@@ -23,6 +23,8 @@ All logger data is in imperial units, so we need to convert to metric.
 
 The cfg file contains all the data required to drive the application operation.
 
+The workbook is locked by default, the password is im the cfg file.
+
 
 							Maintenance History
 							
@@ -111,6 +113,10 @@ March 2023	GJN	Initial Creation
 2025/07/23  GJN Update stationary loco detection code to add Throttle Position in ID (Idle) as a third criteria for an
                 idle locomotive
 
+2025/07/25  GJN When suppressing events for stationary idle locomotive, instead of not writing the records, we now
+                write all records but hide the suppressed records so the user can optionally  unhide them later after
+                providing the worksheet password.
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -174,6 +180,7 @@ previous_throttle_position=""
 suppressed_stationary_event_count=0
 first_suppressed_timestamp=""
 last_suppressed_timestamp=""
+suppressed_rows=list()      # Stores row numbers with suppressed events, used to hide said rows
 
 
 if cfg.in_flight_analysis_enabled:
@@ -184,6 +191,7 @@ def main():
 
     global wb_name
     global workbook
+    global ws_data_samples
 
     global first_datestamp_written
     global last_non_epoch_datestamp_written
@@ -238,6 +246,10 @@ def main():
             lines = raw_line.split('\x0c')
             for line in lines:
                 process_line(line)
+
+    if cfg.suppress_stationary_events:
+        hide_suppressed_rows(ws_data_samples,suppressed_rows)
+
 
     print("\nProcessing statistics")
     print("=====================")
@@ -415,7 +427,7 @@ def create_workbook():
 
     if cfg.suppress_stationary_events:
         ws_modifiers.write(ws_row_modifiers, 0,
-            "Events where locomotive is stationary (speed = 0 kph and tmc = 0) are suppressed.")
+            "Events where locomotive is stationary (speed = 0 kph, throttle is in idle, and tmc = 0) are suppressed.")
         ws_row_modifiers += 1
 
     return
@@ -492,6 +504,7 @@ def process_sample(line):
     global first_suppressed_timestamp
     global last_suppressed_timestamp
     global previous_throttle_position
+    global suppressed_rows
 
 
     time_position = 0
@@ -584,8 +597,7 @@ def process_sample(line):
         first_datestamp_written[0]=record_date
         first_datestamp_written[1]=record_time
 
-    write_this_record=True
-    
+
     # speed is zero, previous speed was zero, TP - ID(le) and we are suppressing stationary events
     # don't write this record to the sheet. increment the counter
     if cfg.suppress_stationary_events and speed==0 and previous_event_speed==0 and tmc==0 and previous_event_tmc==0 and throttle_position=="ID" and previous_throttle_position=="ID":
@@ -593,19 +605,19 @@ def process_sample(line):
             first_suppressed_timestamp=record_time
         suppressed_stationary_event_count+=1
         last_suppressed_timestamp=record_time
-        write_this_record=False
+        suppressed_rows.append(ws_row_data_samples)   # These will be hidden in due course
 
 
     # speed is not zero, previous speed was zero, and we are suppressing stationary events
     # write this record to the sheet after reporting the gap in events...
     if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0) or (throttle_position!="ID" and previous_throttle_position=="ID"):
         if suppressed_stationary_event_count!=0:
-            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive events with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
+            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive "+("event" if suppressed_stationary_event_count==1 else "events")+" with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
             count_suppressed_events+=suppressed_stationary_event_count
         suppressed_stationary_event_count=0
 
-    if write_this_record:
-        ws_row_data_samples = write_record(ws_data_samples,
+
+    ws_row_data_samples = write_record(ws_data_samples,
                                        ws_row_data_samples,
                                        mileage,
                                        speed,
@@ -923,6 +935,15 @@ def get_page_number(line):
     parts = line.rstrip().split()
     page_number = int(parts[4])
     return page_number
+
+def hide_suppressed_rows(ws,suppressed_rows):
+    if len(suppressed_rows)==0:
+        return
+    for row in suppressed_rows:
+        ws.set_row(row,None,None,{'hidden':True})
+
+
+
 
 if __name__ == '__main__':
     main()
