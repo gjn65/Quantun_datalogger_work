@@ -117,6 +117,8 @@ March 2023	GJN	Initial Creation
                 write all records but hide the suppressed records so the user can optionally  unhide them later after
                 providing the worksheet password.
 
+2025/07/27  GJN Tidy up global var defs
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -141,7 +143,7 @@ range (the Quantum system's epoch date). There is a flag in the configuration fi
 deny writing epoch records to the spreadsheet.
 
 Also, when filtering records to those between 2 date/times - we need to include epoch records
-within those 2 bounds but exclude epoch records prior to and subsequent to the bounds. Note
+within those 2 bounds but exclude epoch records prior to and after to the bounds. Note
 that epoch dated records trailing a block of "in-date" records will be recorded until we reach
 a non-epoch, out-of-date, record - this is because we cannot tell, when reading an epoch record,
 whether the next non-epoch record somewhere further in the file is within or without the desired
@@ -181,6 +183,29 @@ suppressed_stationary_event_count=0
 first_suppressed_timestamp=""
 last_suppressed_timestamp=""
 suppressed_rows=list()      # Stores row numbers with suppressed events, used to hide said rows
+
+global wb_name
+global workbook
+global ws_data_samples
+global count_data_samples
+global count_in_flight_analysis
+global count_epoch_events
+global count_suppressed_events
+global ws_row_modifiers
+global start_timestamp_epoch_seconds
+global end_timestamp_epoch_seconds
+global wheel_diameter_qdp_inches
+global ws_row_data_samples
+global ws_annotations
+global ws_row_annotations
+global ws_modifiers
+global ws_in_flight_analysis
+global ws_row_in_flight_analysis
+global lalign
+global cell_fill
+global old_record_data
+global in_suppression_mode
+
 
 
 if cfg.in_flight_analysis_enabled:
@@ -266,6 +291,7 @@ def main():
         print("Last non-epoch record written =  " + last_non_epoch_datestamp_written[0] + " " + last_non_epoch_datestamp_written[1])
 
 
+    ws_row_modifiers+=1
     ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_data_samples)+" data points processed")
     ws_row_modifiers += 1
     ws_modifiers.write(ws_row_modifiers, 0, "Totals: "+str(count_epoch_events)+" epoch dated events processed")
@@ -400,8 +426,9 @@ def create_workbook():
     ws_row_modifiers += 1
     ws_modifiers.write(ws_row_modifiers, 0,
                        "Speed adjustment factor applied. QDP defined wheel diameter = " + str(
-                       wheel_diameter_qdp_inches * 25.4) + ". Measured wheel diameter = " + str(
-                       cfg.wheel_dia_actual_mm) + ". Adjustment factor = " + str(
+                        wheel_diameter_qdp_inches) + " inches (" + str(
+                       wheel_diameter_qdp_inches * 25.4) + " mm). Measured wheel diameter = " + str(
+                       cfg.wheel_dia_actual_mm[loco_number]) + " mm. Adjustment factor = " + str(
                        cfg.speed_adjustment_factor) + ".")
     ws_row_modifiers += 1
     if cfg.epoch_timestamps_allowed:
@@ -593,7 +620,7 @@ def process_sample(line):
         writing_records_to_xls=True
 
     # Write record to spreadsheet
-    if first_datestamp_written[0]==None:
+    if first_datestamp_written[0] is None:
         first_datestamp_written[0]=record_date
         first_datestamp_written[1]=record_time
 
