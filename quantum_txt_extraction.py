@@ -114,10 +114,15 @@ March 2023	GJN	Initial Creation
                 idle locomotive
 
 2025/07/25  GJN When suppressing events for stationary idle locomotive, instead of not writing the records, we now
-                write all records but hide the suppressed records so the user can optionally  unhide them later after
+                write all records but hide the suppressed records so the user can optionally  un-hide them later after
                 providing the worksheet password.
 
-2025/07/27  GJN Tidy up global var defs
+2025/07/27  GJN Tidy up global var definition
+                Add annotation when automatic brake pipe pressure transitions from 0 to non-zero state (compressor start)
+                and the reverse (emergency brake application or train pipe break)
+                The transition from non-zero BP pressure is a reasonable indication of engine start up (unless both
+                brake stands are isolated for rotary servicing) which might help with correlation to the engine start
+                time recorded in the loco log book in the event the logger RTC shows and epoch TOD state.
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -183,6 +188,7 @@ suppressed_stationary_event_count=0
 first_suppressed_timestamp=""
 last_suppressed_timestamp=""
 suppressed_rows=list()      # Stores row numbers with suppressed events, used to hide said rows
+previous_event_brake_pipe_pressure=-1   # Brake pipe pressure
 
 global wb_name
 global workbook
@@ -532,7 +538,7 @@ def process_sample(line):
     global last_suppressed_timestamp
     global previous_throttle_position
     global suppressed_rows
-
+    global previous_event_brake_pipe_pressure
 
     time_position = 0
     time_length = 8
@@ -569,7 +575,7 @@ def process_sample(line):
     # The first 3 fields are values as follows:
     brake_pipe_pressure = int(parts[0])
     brake_cylinder_pressure = int(parts[1])
-    throttle_position = parts[2]  # This is left as string to cater for (D)ynamic or low (ID)le states
+    throttle_position = parts[2]  # This is left as string to cater for (D)dynamic or low (ID)le states
 
     # The rest of these are binary flags (1 is on, 0 is off)
     # Flags are:
@@ -624,6 +630,19 @@ def process_sample(line):
         first_datestamp_written[0]=record_date
         first_datestamp_written[1]=record_time
 
+    # Check for brake pipe pressure changes of interest
+    #       Transition from 0 to non-zero - engine startup?
+    if previous_event_brake_pipe_pressure == 0 and brake_pipe_pressure > 0:     # Compressor start up
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" psi to "+str(brake_pipe_pressure)+" psi - compressor start up "+line[time_position:remainder_position],True)
+    #       Transition from non-zero tp 0 - emergency application or brake pipe rupture?
+    if previous_event_brake_pipe_pressure > 0  and brake_pipe_pressure == 0:
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" psi to "+str(brake_pipe_pressure)+" psi. "+line[time_position:remainder_position],True)
+
+    ##################################################################################################
+    # NOTE: Any state change that writes an annotation to the data samples sheet MUST be done prior  #
+    #       to the following line suppression code otherwise the annotation row will be added to the #
+    #       list of rows to be hidden instead of the actual data sample row number!                  #
+    ##################################################################################################
 
     # speed is zero, previous speed was zero, TP - ID(le) and we are suppressing stationary events
     # don't write this record to the sheet. increment the counter
@@ -639,9 +658,12 @@ def process_sample(line):
     # write this record to the sheet after reporting the gap in events...
     if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0) or (throttle_position!="ID" and previous_throttle_position=="ID"):
         if suppressed_stationary_event_count!=0:
-            write_annotation(" Suppressed "+str(suppressed_stationary_event_count)+" consecutive "+("event" if suppressed_stationary_event_count==1 else "events")+" with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
+            write_annotation("Suppressed "+str(suppressed_stationary_event_count)+" consecutive "+("event" if suppressed_stationary_event_count==1 else "events")+" with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
             count_suppressed_events+=suppressed_stationary_event_count
         suppressed_stationary_event_count=0
+
+
+
 
 
     ws_row_data_samples = write_record(ws_data_samples,
@@ -660,6 +682,7 @@ def process_sample(line):
     previous_event_speed=speed
     previous_event_tmc=tmc
     previous_throttle_position=throttle_position
+    previous_event_brake_pipe_pressure=brake_pipe_pressure
 
     if not is_epoch_year_datestamp:
         last_non_epoch_datestamp_written[0] = record_date
@@ -861,6 +884,7 @@ def check_for_epoch_year(date):
 
 
 def write_header(wb, ws, text, loco_number):
+
     wb.set_size(1920, 1080)
     lalign = wb.add_format({'align': 'left'})
     ws.set_column('A:B', 15, lalign)
@@ -888,8 +912,8 @@ def write_header(wb, ws, text, loco_number):
 
 
 def write_header_modifiers(wb, ws, text):
-    lalign = wb.add_format({'align': 'left'})
-    ws.set_column('A:A', 150, lalign)
+    l_align = wb.add_format({'align': 'left'})
+    ws.set_column('A:A', 150, l_align)
     header_format_modifiers = wb.add_format({'font_size': 14, 'bold': True})
     ws.freeze_panes(3, 0)
     """ Write header line to the worksheet. Return the next row number (0 based) """
@@ -898,10 +922,10 @@ def write_header_modifiers(wb, ws, text):
 
 
 def write_header_ann(wb, ws, text, loco_number):
-    lalign = wb.add_format({'align': 'left'})
-    ws.set_column('A:B', 15, lalign)
-    ws.set_column('C:C', 50, lalign)
-    ws.set_column('D:F', 15, lalign)
+    l_align = wb.add_format({'align': 'left'})
+    ws.set_column('A:B', 15, l_align)
+    ws.set_column('C:C', 50, l_align)
+    ws.set_column('D:F', 15, l_align)
 
     header_format_ann = wb.add_format({'font_size': 14, 'bold': True})
     ws.freeze_panes(3, 0)

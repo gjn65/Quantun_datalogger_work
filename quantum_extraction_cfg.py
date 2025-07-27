@@ -50,8 +50,8 @@ worksheet_name = "Data Extract"
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
 filter_dates = True
-start_timestamp = "2025/07/16 00:00:00"
-end_timestamp = "2025/07/16 23:59:59"
+start_timestamp = "2025/07/09 00:00:00"
+end_timestamp = "2025/07/09 23:59:59"
 
 # The data logger TOD clock is reverting to 1990 from time to time leading to
 # oddball sample times in the traces. If this flag is set to True then these
