@@ -112,3 +112,7 @@ ifa_in_event_of_interest = False    # Set to true when we are in a run of record
 # the case.
 # If set to False then all events are written out
 suppress_stationary_events=True
+
+# If set, brake pressures will be reported in kPa rather than the default psi values
+report_kpa_pressures=False
+psi_to_kpa_factor=6.89476

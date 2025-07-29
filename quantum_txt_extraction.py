@@ -5,7 +5,7 @@
 
 Quantum Desktop Playback - data reporter
 
-This code will parse a text file and create an Excel worksheet.
+This code will parse a text file and create an Excel workbook.
 The text file is created by running the QDP software, selecting the timescale
 required using tags (or select the entire file) then printing it to a GENERIC/TEXT file
 which must be in landscape format
@@ -16,10 +16,12 @@ When setting up the printed page, select ALL variables logged - this code will w
 that are not required.
 
 The header page of the report is used ot make adjustments to the wheel speed from that
-recorded in the data (which can be modified if the data is extracted using QDP but cannot if
-it's downloaded using the QRST code).
+recorded in the data (which can be modified if the data is extracted using Quantum Desktop Playback but cannot if
+it's downloaded using the Quantum Recorder Service Toolkit code).
 
-All logger data is in imperial units, so we need to convert to metric.
+All logger data is in imperial units, so the code will convert to metric in the case of speed and distance. BP pressures
+are left in imperial units as that is what is used in SteamRanger - this can be over-ridden if required with a
+switch in the configuration file.
 
 The cfg file contains all the data required to drive the application operation.
 
@@ -90,8 +92,8 @@ March 2023	GJN	Initial Creation
                 commanding the idle position and the TMC decaying under the governor control, there's also the
                 possibility of contactor arcing.
 
-                We implement a fixed length queue for events, to retain the last (n) events. When we hit an IDLE
-                sample with a non-zero TMC value (or optionally, over a certain threshold) we will then log those
+                We implement a fixed length queue for events, to retain the last (n - defined in the cfg file) events.
+                When we hit an IDLE sample with a non-zero TMC value (or optionally, over a certain threshold) we will then log those
                 events, plus the events leading up to the event in a separate sheet in the workbook.
 
                 We continue to log readings until either the TMC drops to zero or the throttle
@@ -123,6 +125,9 @@ March 2023	GJN	Initial Creation
                 The transition from non-zero BP pressure is a reasonable indication of engine start up (unless both
                 brake stands are isolated for rotary servicing) which might help with correlation to the engine start
                 time recorded in the loco log book in the event the logger RTC shows and epoch TOD state.
+
+2025/07/29  GJN Allow brake pressures to be reported in kPa by setting a configuration file switch. Default is
+                to report in psi.
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -266,6 +271,9 @@ def main():
         print("Stationary loco events will be suppressed")
     else:
         print("Stationary loco events are included in report")
+    if cfg.report_kpa_pressures:
+        print("Pressures will be reported in kpa")
+
     print("Input = " + cfg.source_file)
 
     with open(cfg.source_file) as file:
@@ -460,7 +468,12 @@ def create_workbook():
 
     if cfg.suppress_stationary_events:
         ws_modifiers.write(ws_row_modifiers, 0,
-            "Events where locomotive is stationary (speed = 0 kph, throttle is in idle, and tmc = 0) are suppressed.")
+                           "Events where locomotive is stationary (speed = 0 kph, throttle is in idle, and tmc = 0) are suppressed.")
+        ws_row_modifiers += 1
+
+    if cfg.report_kpa_pressures:
+        ws_modifiers.write(ws_row_modifiers, 0,
+                           "Brake system pressures reported in kpa.")
         ws_row_modifiers += 1
 
     return
@@ -574,7 +587,12 @@ def process_sample(line):
 
     # The first 3 fields are values as follows:
     brake_pipe_pressure = int(parts[0])
+    if cfg.report_kpa_pressures:
+        brake_pipe_pressure=round(brake_pipe_pressure*cfg.psi_to_kpa_factor)
     brake_cylinder_pressure = int(parts[1])
+    if cfg.report_kpa_pressures:
+        brake_cylinder_pressure=round(brake_cylinder_pressure*cfg.psi_to_kpa_factor)
+
     throttle_position = parts[2]  # This is left as string to cater for (D)dynamic or low (ID)le states
 
     # The rest of these are binary flags (1 is on, 0 is off)
@@ -632,11 +650,15 @@ def process_sample(line):
 
     # Check for brake pipe pressure changes of interest
     #       Transition from 0 to non-zero - engine startup?
+    if cfg.report_kpa_pressures:
+        pressure_unit="kpa"
+    else:
+        pressure_unit="psi"
     if previous_event_brake_pipe_pressure == 0 and brake_pipe_pressure > 0:     # Compressor start up
-        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" psi to "+str(brake_pipe_pressure)+" psi - compressor start up "+line[time_position:remainder_position],True)
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+" - compressor start up "+line[time_position:remainder_position],True)
     #       Transition from non-zero tp 0 - emergency application or brake pipe rupture?
     if previous_event_brake_pipe_pressure > 0  and brake_pipe_pressure == 0:
-        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" psi to "+str(brake_pipe_pressure)+" psi. "+line[time_position:remainder_position],True)
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+". "+line[time_position:remainder_position],True)
 
     ##################################################################################################
     # NOTE: Any state change that writes an annotation to the data samples sheet MUST be done prior  #
@@ -906,8 +928,13 @@ def write_header(wb, ws, text, loco_number):
     """ Write header line to the worksheet. Return the next row number (0 based) """
     ws.write(0, 0, text + " : " + loco_number, header_format)
 
+    if cfg.report_kpa_pressures:
+        # Change header value from config file if we are reporting in kpa.
+        pressure_unit="(kpa)"
+    else:
+        pressure_unit="(psi)"
     for column, record in enumerate(cfg.headers):
-        ws.write(1, column, record[0])
+        ws.write(1, column, record[0].replace("(psi)",pressure_unit))
     return 3
 
 
