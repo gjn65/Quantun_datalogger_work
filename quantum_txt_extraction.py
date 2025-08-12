@@ -27,6 +27,28 @@ The cfg file contains all the data required to drive the application operation.
 
 The workbook is locked by default, the password is im the cfg file.
 
+Command line arguments - as of 11/08/2025
+-----------------------------------------
+Switches                    Details                         Effect
+-f --filename               source file path                overrides cfg.source_file
+-t --ts_adjust              brings logger clock into sync   overrides cfg.ts_adjust
+                            with real time if required.
+                            Value is in seconds and is
+                            relative to the logger clock
+                            - a +ve value advances the
+                            logger clock towards the rtc
+-b --start_timestamp        Filters records by date.        over-rides cfg.start_timestamp and forces cfg.filter_dates to true
+                            Must be of the form
+                            "yyyy/mm/dd hh:mm:ss"
+                            End timestamp must also be
+                            supplied
+-e --end_timestamp          Filters records by date.        over-rides cfg.end_timestamp and forces cfg.filter_dates to true
+                            Must be of the form
+                            "yyyy/mm/dd hh:mm:ss"
+                            Start timestamp must also be
+                            supplied
+-k --kpa_pressure           Report pressures in kpa         over-rides cfg.report_kpa_pressures
+-p --psi_pressures          Report pressures in psi         over-rides cfg.report_kpa_pressures
 
 							Maintenance History
 							
@@ -129,6 +151,8 @@ March 2023	GJN	Initial Creation
 2025/07/29  GJN Allow brake pressures to be reported in kPa by setting a configuration file switch. Default is
                 to report in psi.
 
+3035/08/11  GJN Add command line argument code - to over-ride settings in configuration file.
+
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
 
@@ -170,6 +194,7 @@ the interval if either record has an epoch datestamp.
 import os
 import sys
 import xlsxwriter
+import argparse
 from collections import deque
 from datetime import datetime
 import quantum_extraction_cfg as cfg
@@ -234,8 +259,7 @@ def main():
     global last_datestamp_written
 
     global count_data_samples
-    if cfg.in_flight_analysis_enabled:
-        global count_in_flight_analysis
+    global count_in_flight_analysis
     global count_epoch_events
     global count_suppressed_events
 
@@ -243,6 +267,9 @@ def main():
 
     global start_timestamp_epoch_seconds
     global end_timestamp_epoch_seconds
+
+    process_command_line_args()
+
     start_timestamp_epoch_seconds = get_epoch(cfg.start_timestamp)
     end_timestamp_epoch_seconds = get_epoch(cfg.end_timestamp)
 
@@ -276,15 +303,25 @@ def main():
 
     print("Input = " + cfg.source_file)
 
-    with open(cfg.source_file) as file:
-        while raw_line := file.readline():
-            # We need to examine the line to see if there is a FORM FEED (0x0C) within it, if so
-            # the line needs to be split on that character and each half treated as a separate line
-            # The W11 print to Generic Text or the Quantum software inserts FFs at the end of the page
-            raw_line = raw_line.rstrip()
-            lines = raw_line.split('\x0c')
-            for line in lines:
-                process_line(line)
+    try:
+        with open(cfg.source_file) as file:
+            while raw_line := file.readline():
+                # We need to examine the line to see if there is a FORM FEED (0x0C) within it, if so
+                # the line needs to be split on that character and each half treated as a separate line
+                # The W11 print to Generic Text or the Quantum software inserts FFs at the end of the page
+                raw_line = raw_line.rstrip()
+                lines = raw_line.split('\x0c')
+                for line in lines:
+                    process_line(line)
+    except FileNotFoundError:
+        print('Error: The file ',cfg.source_file, 'was not found.')
+        sys.exit(-1)
+    except PermissionError:
+        print('Error: You do not have permission to access ', cfg.source_file)
+        sys.exit(-1)
+    except IOError as e:
+        print(f"An I/O error occurred: {e}")
+        sys.exit(-1)
 
     if cfg.suppress_stationary_events:
         hide_suppressed_rows(ws_data_samples,suppressed_rows)
@@ -1020,7 +1057,43 @@ def hide_suppressed_rows(ws,suppressed_rows):
     for row in suppressed_rows:
         ws.set_row(row,None,None,{'hidden':True})
 
+def process_command_line_args():
+    # Handle command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--filename',
+                        help='if set, this file path over-rides the entry in the configuration file')
+    parser.add_argument('-t', '--ts_adjust',
+                        help='if set, this value in seconds is applied to the logger clock timestamps to bring them in sync with the real time clock')
+    parser.add_argument('-b', '--start_timestamp',
+                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - end timestamp should be supplied')
+    parser.add_argument('-e', '--end_timestamp',
+                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - start timestamp should be supplied')
+    parser.add_argument('-k','--kpa_pressures', help='if set, pressures are reported in metric units', action='store_true' )
+    parser.add_argument('-p','--psi_pressures', help='if set, pressures are reported in imperial units', action='store_true' )
+    args = parser.parse_args()
 
+    if args.filename:
+        print("CFG source file ", cfg.source_file, " over-ridden by command line value ", args.filename)
+        cfg.source_file = args.filename
+    if args.ts_adjust:
+        print("CFG timestamp adjustment ", cfg.ts_adjustment, " over-ridden by command line value ", args.ts_adjust)
+        cfg.ts_adjustment = args.ts_adjust
+    if args.start_timestamp:
+        print("CFG record filtering enabled. Start timestamp ", cfg.start_timestamp,
+              " over-ridden by command line value ", args.start_timestamp)
+        cfg.start_timestamp = args.start_timestamp
+        cfg.filter_dates = True
+    if args.end_timestamp:
+        print("CFG record filtering enabled. End timestamp ", cfg.end_timestamp,
+              " over-ridden by command line value ", args.end_timestamp)
+        cfg.end_timestamp = args.end_timestamp
+        cfg.filter_dates = True
+    if args.kpa_pressures:
+        print("CFG air pressures will be reported in kpa")
+        cfg.report_kpa_pressures = True
+    if args.psi_pressures:
+        print("CFG air pressures will be reported in psi")
+        cfg.report_kpa_pressures = False
 
 
 if __name__ == '__main__':
