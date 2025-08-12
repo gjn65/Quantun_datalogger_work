@@ -37,7 +37,7 @@ Switches                    Details                         Effect
                             relative to the logger clock
                             - a +ve value advances the
                             logger clock towards the rtc
--b --start_timestamp        Filters records by date.        over-rides cfg.start_timestamp and forces cfg.filter_dates to true
+-s --start_timestamp        Filters records by date.        over-rides cfg.start_timestamp and forces cfg.filter_dates to true
                             Must be of the form
                             "yyyy/mm/dd hh:mm:ss"
                             End timestamp must also be
@@ -1064,10 +1064,10 @@ def process_command_line_args():
                         help='if set, this file path over-rides the entry in the configuration file')
     parser.add_argument('-t', '--ts_adjust',
                         help='if set, this value in seconds is applied to the logger clock timestamps to bring them in sync with the real time clock')
-    parser.add_argument('-b', '--start_timestamp',
-                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - end timestamp should be supplied')
+    parser.add_argument('-s', '--start_timestamp',
+                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - end timestamp must also be supplied')
     parser.add_argument('-e', '--end_timestamp',
-                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - start timestamp should be supplied')
+                        help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - start timestamp must also be supplied')
     parser.add_argument('-k','--kpa_pressures', help='if set, pressures are reported in metric units', action='store_true' )
     parser.add_argument('-p','--psi_pressures', help='if set, pressures are reported in imperial units', action='store_true' )
     args = parser.parse_args()
@@ -1079,11 +1079,17 @@ def process_command_line_args():
         print("CFG timestamp adjustment ", cfg.ts_adjustment, " over-ridden by command line value ", args.ts_adjust)
         cfg.ts_adjustment = args.ts_adjust
     if args.start_timestamp:
+        if not args.end_timestamp:
+            print("If supplying a start timestamp for record filtering, you must also supply an end timestamp")
+            sys.exit(-1)
         print("CFG record filtering enabled. Start timestamp ", cfg.start_timestamp,
               " over-ridden by command line value ", args.start_timestamp)
         cfg.start_timestamp = args.start_timestamp
         cfg.filter_dates = True
     if args.end_timestamp:
+        if not args.start_timestamp:
+            print("If supplying an end timestamp for record filtering, you must also supply a start timestamp")
+            sys.exit(-1)
         print("CFG record filtering enabled. End timestamp ", cfg.end_timestamp,
               " over-ridden by command line value ", args.end_timestamp)
         cfg.end_timestamp = args.end_timestamp
