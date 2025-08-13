@@ -37,7 +37,7 @@ Switches                    Details                         Effect
                             relative to the logger clock
                             - a +ve value advances the
                             logger clock towards the rtc
--s --start_timestamp        Filters records by date.        over-rides cfg.start_timestamp and forces cfg.filter_dates to true
+-b --begin_timestamp        Filters records by date.        over-rides cfg.start_timestamp and forces cfg.filter_dates to true
                             Must be of the form
                             "yyyy/mm/dd hh:mm:ss"
                             End timestamp must also be
@@ -49,6 +49,13 @@ Switches                    Details                         Effect
                             supplied
 -k --kpa_pressure           Report pressures in kpa         over-rides cfg.report_kpa_pressures
 -p --psi_pressures          Report pressures in psi         over-rides cfg.report_kpa_pressures
+-s --suppress_stationary    Suppress events where loco      over-rides cfg.suppress_stationary_events
+                            is stationary with 0 TMC and
+                            throttle in idle
+-s --no_suppress_stationary Do not suppress events          over-rides cfg.suppress_stationary_events
+                            where loco is stationary with
+                            TMC = 0 amps and
+                            throttle in idle
 
 							Maintenance History
 							
@@ -1064,12 +1071,16 @@ def process_command_line_args():
                         help='if set, this file path over-rides the entry in the configuration file')
     parser.add_argument('-t', '--ts_adjust',
                         help='if set, this value in seconds is applied to the logger clock timestamps to bring them in sync with the real time clock')
-    parser.add_argument('-s', '--start_timestamp',
+    parser.add_argument('-b', '--begin_timestamp',
                         help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - end timestamp must also be supplied')
     parser.add_argument('-e', '--end_timestamp',
                         help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - start timestamp must also be supplied')
     parser.add_argument('-k','--kpa_pressures', help='if set, pressures are reported in metric units', action='store_true' )
     parser.add_argument('-p','--psi_pressures', help='if set, pressures are reported in imperial units', action='store_true' )
+    parser.add_argument('-s', '--suppress_stationary', help='if set, hide rows where loco is stationary, TMC=0 and TP is Idle',
+                        action='store_true')
+    parser.add_argument('-n', '--no_suppress_stationary', help='if set, show rows where loco is stationary, TMC=0 and TP is Idle',
+                        action='store_true')
     args = parser.parse_args()
 
     if args.filename:
@@ -1084,7 +1095,7 @@ def process_command_line_args():
             sys.exit(-1)
         print("CFG record filtering enabled. Start timestamp ", cfg.start_timestamp,
               " over-ridden by command line value ", args.start_timestamp)
-        cfg.start_timestamp = args.start_timestamp
+        cfg.start_timestamp = args.begin_timestamp
         cfg.filter_dates = True
     if args.end_timestamp:
         if not args.start_timestamp:
@@ -1100,6 +1111,12 @@ def process_command_line_args():
     if args.psi_pressures:
         print("CFG air pressures will be reported in psi")
         cfg.report_kpa_pressures = False
+    if args.suppress_stationary:
+        print("CFG suppress stationary loco events")
+        cfg.suppress_stationary_events = True
+   if args.no_suppress_stationary:
+        print("CFG do not suppress stationary loco events")
+        cfg.suppress_stationary_events = False
 
 
 if __name__ == '__main__':
