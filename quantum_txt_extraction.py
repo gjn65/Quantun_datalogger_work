@@ -1114,7 +1114,7 @@ def process_command_line_args():
     if args.suppress_stationary:
         print("CFG suppress stationary loco events")
         cfg.suppress_stationary_events = True
-   if args.no_suppress_stationary:
+    if args.no_suppress_stationary:
         print("CFG do not suppress stationary loco events")
         cfg.suppress_stationary_events = False
 
