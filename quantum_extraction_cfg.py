@@ -65,6 +65,7 @@ epoch_year = 1990
 # for parsing reasons
 tp_translations = {"F": "Fault", "I": "Idle", "ID": "Idle", "D": "Dyn", "S": "Stop"}
 
+
 # Column headers for worksheet
 # This is a list of tuples, each tuple has the column header text and a boolean flag indicating
 # whether the column is visible
@@ -116,3 +117,9 @@ suppress_stationary_events=True
 # If set, brake pressures will be reported in kPa rather than the default psi values
 report_kpa_pressures=False
 psi_to_kpa_factor=6.89476
+
+# If this flag is set to False then IDLE throttle position will show as Idle in the spreadsheet, which
+# improves readability but does not facilitate chart generation
+# if the flag is set to True then the Idle position will show as 0 - making it easier to generate
+# charts.
+idle_as_digit=False

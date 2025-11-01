@@ -15,7 +15,7 @@ NB: Ensure printer properties are set to LANDSCAPE mode for text output
 When setting up the printed page, select ALL variables logged - this code will weed out those
 that are not required.
 
-The header page of the report is used ot make adjustments to the wheel speed from that
+The header page of the report is used to make adjustments to the wheel speed from that
 recorded in the data (which can be modified if the data is extracted using Quantum Desktop Playback but cannot if
 it's downloaded using the Quantum Recorder Service Toolkit code).
 
@@ -26,6 +26,8 @@ switch in the configuration file.
 The cfg file contains all the data required to drive the application operation.
 
 The workbook is locked by default, the password is im the cfg file.
+
+-------------------------------------------------------------------------------------------------------------------------------
 
 Command line arguments - as of 11/08/2025
 -----------------------------------------
@@ -52,12 +54,17 @@ Switches                    Details                         Effect
 -s --suppress_stationary    Suppress events where loco      over-rides cfg.suppress_stationary_events
                             is stationary with 0 TMC and
                             throttle in idle
--s --no_suppress_stationary Do not suppress events          over-rides cfg.suppress_stationary_events
+-n --no_suppress_stationary Do not suppress events          over-rides cfg.suppress_stationary_events
                             where loco is stationary with
                             TMC = 0 amps and
                             throttle in idle
 
+-------------------------------------------------------------------------------------------------------------------------------
+
+
+                            ===================
 							Maintenance History
+                            ===================
 							
 March 2023	GJN	Initial Creation
 2023/03/23  GJN Added Throttle position translation for text fields
@@ -158,7 +165,13 @@ March 2023	GJN	Initial Creation
 2025/07/29  GJN Allow brake pressures to be reported in kPa by setting a configuration file switch. Default is
                 to report in psi.
 
-3035/08/11  GJN Add command line argument code - to over-ride settings in configuration file.
+2025/08/11  GJN Add command line argument code - to over-ride settings in configuration file.
+
+2025/11/01  GJN Allow Throttle Position (Idle) to be recorded as either "Idle" for legibility or as 0 for
+                chart generation ability. Controlled by configuration switch "idle_as_digit"
+
+-------------------------------------------------------------------------------------------------------------------------------
+
 
 NB: Low Idle position allows the engine to idle lower than normal to save fuel. 
 	Not used on our 830 or 930 class locomotives.
@@ -171,7 +184,8 @@ NB: Low Idle position allows the engine to idle lower than normal to save fuel.
 	into the data logger in June/July 2023 to fix this problem
 
 
-*********************************************************************************************************
+-------------------------------------------------------------------------------------------------------------------------------
+
 
 NOTE RE EPOCH OR 1990 DATE RECORD HANDLING
 
@@ -193,7 +207,8 @@ range of dates.
 Finally, when calculating the time between annotation records (non data records), we cannot calculate
 the interval if either record has an epoch datestamp.
 
-*********************************************************************************************************
+-------------------------------------------------------------------------------------------------------------------------------
+
 
 """
 
@@ -375,6 +390,11 @@ def main():
 
 
 def process_line(line):
+    """
+        Process each line, if we are in page 1 we set a number of variables based on the contents.
+        For other pages, if the line starts with a number (ie a date record) then we pass it to the data sampling function
+        otherwise it's an annotation so we write it to the annotaion worksheet
+    """
     global old_page_number
     global loco_number
     global wheel_diameter_qdp_inches
@@ -440,6 +460,9 @@ def process_line(line):
         return  # We don't want anything else from page 1
 
 def create_workbook():
+    """
+        Create Excel workbook with required pages and initiate vars for each page to track the current row for that page
+    """
     global loco_number
     global workbook
     global ws_data_samples
@@ -523,6 +546,10 @@ def create_workbook():
     return
 
 def write_annotation(line,write_to_logger_event_sheet):
+    """
+        Annotations are text records that contain no loco movement data, they get written to a worksheet in the workbook.
+        The code will also add records to this worksheet to record activities of interest
+    """
     global start_timestamp_epoch_seconds
     global end_timestamp_epoch_seconds
     global ws_data_samples
@@ -576,6 +603,10 @@ def write_annotation(line,write_to_logger_event_sheet):
     return
 
 def process_sample(line):
+    """
+        This function is passed a line containing data from the Quantum data logger, the function parses the data an 
+        passes it to be written to the excel worksheet
+    """
     global old_record_date
     global old_record_time
     global ws_data_samples
@@ -767,6 +798,10 @@ def process_sample(line):
     return
 
 def perform_in_flight_analysis():
+    """
+        Analyse data records and alert on events of interest. A deque is set up to store the 10 events leading up to the current event so
+        we can report on precursors to an event
+    """
 
 
     global ws_in_flight_analysis
@@ -926,9 +961,12 @@ def write_record(ws, ws_row, mileage, speed, tmc, brake_pipe_pressure, brake_cyl
 
 def translate_tp(tp):
     """ take a throttle position. If it's a number, then return that number.
-        If it's a letter then returnn the corresponding text """
+        If it's a letter then returnn the corresponding text.
+        If the TP iw Idle and the control flag is set then we return 0 rather then Idle """
     if tp.isnumeric():
         return tp
+    if tp.upper()[0]=="I" and cfg.idle_as_digit:
+        return 0
     if tp.upper() in cfg.tp_translations.keys():
         return cfg.tp_translations[tp.upper()]
     return tp + " (Unknown)"
@@ -944,12 +982,18 @@ def convert_date(us_date):
 
 
 def check_for_epoch_year(date):
+    """
+        Retirn tru if the date contains the epoch year (usually 1990)
+    """
     if str(cfg.epoch_year) in date:
       return True
     return False
 
 
 def write_header(wb, ws, text, loco_number):
+    """
+        write the header(s) to an excel worksheet
+    """
 
     wb.set_size(1920, 1080)
     lalign = wb.add_format({'align': 'left'})
@@ -983,6 +1027,9 @@ def write_header(wb, ws, text, loco_number):
 
 
 def write_header_modifiers(wb, ws, text):
+    """
+        Write the header row for the modifiers worksheet
+    """
     l_align = wb.add_format({'align': 'left'})
     ws.set_column('A:A', 150, l_align)
     header_format_modifiers = wb.add_format({'font_size': 14, 'bold': True})
@@ -993,6 +1040,9 @@ def write_header_modifiers(wb, ws, text):
 
 
 def write_header_ann(wb, ws, text, loco_number):
+    """
+        Write the header row for the annotations worksheet
+    """
     l_align = wb.add_format({'align': 'left'})
     ws.set_column('A:B', 15, l_align)
     ws.set_column('C:C', 50, l_align)
@@ -1032,6 +1082,9 @@ def get_epoch(timestamp):
 
 
 def isfloat(num):
+    """
+        Test for a float value
+    """
     try:
         float(num)
         return True
@@ -1039,12 +1092,14 @@ def isfloat(num):
         return False
 
 
-# The logger realtime clock can vary from the actual time so the timestamps
-# are not accurate. This function will normalise the timestamps based on the
-# TOD adjustment factor. If the logger clock is behind the real clock then a
-# positive adjustment is made, if ahead then a negative adjustment is made.
-# The adjustment factor is in seconds.
 def apply_time_adjustment(date, time):
+    """
+        The logger realtime clock can vary from the actual time so the timestamps
+        are not accurate. This function will normalise the timestamps based on the
+        TOD adjustment factor. If the logger clock is behind the real clock then a
+        positive adjustment is made, if ahead then a negative adjustment is made.
+        The adjustment factor is in seconds.
+    """
     d = datetime.strptime(date + " " + time, "%Y/%m/%d %H:%M:%S")
     epoch = datetime(d.year, d.month, d.day, d.hour, d.minute, d.second).timestamp()
     epoch += cfg.ts_adjustment
@@ -1054,18 +1109,26 @@ def apply_time_adjustment(date, time):
     return date, time
 
 def get_page_number(line):
+    """
+        Find the page number from the incoming pages
+    """
     parts = line.rstrip().split()
     page_number = int(parts[4])
     return page_number
 
 def hide_suppressed_rows(ws,suppressed_rows):
+    """
+        Passed a worksheet and a list of row numbers, hide each of the rows from the list
+    """
     if len(suppressed_rows)==0:
         return
     for row in suppressed_rows:
         ws.set_row(row,None,None,{'hidden':True})
 
 def process_command_line_args():
-    # Handle command line arguments
+    """
+        COmmand line arguments may over-ride the directives in the config file
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--filename',
                         help='if set, this file path over-rides the entry in the configuration file')
@@ -1089,12 +1152,12 @@ def process_command_line_args():
     if args.ts_adjust:
         print("CFG timestamp adjustment ", cfg.ts_adjustment, " over-ridden by command line value ", args.ts_adjust)
         cfg.ts_adjustment = args.ts_adjust
-    if args.start_timestamp:
+    if args.begin_timestamp:
         if not args.end_timestamp:
             print("If supplying a start timestamp for record filtering, you must also supply an end timestamp")
             sys.exit(-1)
         print("CFG record filtering enabled. Start timestamp ", cfg.start_timestamp,
-              " over-ridden by command line value ", args.start_timestamp)
+              " over-ridden by command line value ", args.begin_timestamp)
         cfg.start_timestamp = args.begin_timestamp
         cfg.filter_dates = True
     if args.end_timestamp:
