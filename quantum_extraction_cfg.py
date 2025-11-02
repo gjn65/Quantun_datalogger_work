@@ -2,7 +2,7 @@
 # - print to Generic Text file to generate.
 source_file = 'input files/JULY2025.prn'
 #source_file = 'input files/20231119 to 20240721.txt'
-#source_file = 'input files/testinput.txt'
+#source_file = 'input files/test_input.txt'
 # source_file='sample1.pdf'
 # source_file='sample2.pdf'
 
@@ -122,4 +122,12 @@ psi_to_kpa_factor=6.89476
 # improves readability but does not facilitate chart generation
 # if the flag is set to True then the Idle position will show as 0 - making it easier to generate
 # charts.
-idle_as_digit=False
+idle_as_digit=True
+
+# This is a numeric value controlling the amount of information displayed during processing. It can be over-ridden
+# via VLI switches -q (or -qq, -qqq etc.)
+# Values are:
+#   0   - show all
+#   1   - suppress page numbers being processed
+#   2   - suppress page numbers and inflight analysis indications
+quiet=0

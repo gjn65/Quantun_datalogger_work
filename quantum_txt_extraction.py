@@ -33,7 +33,7 @@ Command line arguments - as of 11/08/2025
 -----------------------------------------
 Switches                    Details                         Effect
 -f --filename               source file path                overrides cfg.source_file
--t --ts_adjust              brings logger clock into sync   overrides cfg.ts_adjust
+-a --ts_adjust              brings logger clock into sync   overrides cfg.ts_adjust
                             with real time if required.
                             Value is in seconds and is
                             relative to the logger clock
@@ -58,6 +58,12 @@ Switches                    Details                         Effect
                             where loco is stationary with
                             TMC = 0 amps and
                             throttle in idle
+-i --integer_idle           If set, IDLE throttle position records will be reported as integer 0 in the spreadsheet
+                            to facilitate adding charts. Over-rides the config file entry idle_as_digit
+-t --text_idle              The reverse of -i - IDLE events will be recorded as text "Idle"
+-q --quiet                  Control amount of information displayed on console during processing:
+                            -q      - no page number indications
+                            -qq     - no page numbers or inflight analysis processing indications
 
 -------------------------------------------------------------------------------------------------------------------------------
 
@@ -169,6 +175,12 @@ March 2023	GJN	Initial Creation
 
 2025/11/01  GJN Allow Throttle Position (Idle) to be recorded as either "Idle" for legibility or as 0 for
                 chart generation ability. Controlled by configuration switch "idle_as_digit"
+
+2025/11/02  GJN Add -i and -t switches to control Idle throttle notation from command line, change previous -t
+                switch for timestamp adjustment to become -a to free up -t for this.
+                Add -q (or -qq, -qqq etc.) switch and configuration item to control amount of processing reporting
+                -q suppresses page numbers
+                -qq suppresses page numbers and inflight analysis event indications on console
 
 -------------------------------------------------------------------------------------------------------------------------------
 
@@ -393,7 +405,7 @@ def process_line(line):
     """
         Process each line, if we are in page 1 we set a number of variables based on the contents.
         For other pages, if the line starts with a number (ie a date record) then we pass it to the data sampling function
-        otherwise it's an annotation so we write it to the annotaion worksheet
+        otherwise it's an annotation so we write it to the annotation worksheet
     """
     global old_page_number
     global loco_number
@@ -405,7 +417,8 @@ def process_line(line):
 
     if 'Page' in line:
         current_page_number = get_page_number(line)
-        print("Processing page " + str(current_page_number))
+        if cfg.quiet==0:
+            print("Processing page " + str(current_page_number))
         return
 
     if old_page_number > 1:
@@ -526,6 +539,8 @@ def create_workbook():
                                            "Locomotive " + loco_number + ". Source file " + parts[1])
         ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"Events will be flagged if the TMC value is over "+str(cfg.ifa_tmc_threshold)+" Amps with the throttle in IDLE")
         ws_row_in_flight_analysis+=1
+        ws_in_flight_analysis.write(ws_row_in_flight_analysis,1,"This may be caused by arcing across contactors when dropping to Idle position.")
+        ws_row_in_flight_analysis+=1
         ws_in_flight_analysis.write(ws_row_in_flight_analysis,0,"The previous "+str(cfg.ifa_deque_maxlen)+" events will be shown. All subsequent events will also be shown until the selection criteria are no longer met")
         ws_row_in_flight_analysis+=2
         ws_modifiers.write(ws_row_modifiers,0,"Event analysis: Events will be flagged if the TMC value is over "+str(cfg.ifa_tmc_threshold)+" Amps with the throttle in IDLE")
@@ -604,8 +619,8 @@ def write_annotation(line,write_to_logger_event_sheet):
 
 def process_sample(line):
     """
-        This function is passed a line containing data from the Quantum data logger, the function parses the data an 
-        passes it to be written to the excel worksheet
+        This function is passed a line containing data from the Quantum data logger, the function parses the data and
+        passes it to be written to the Excel worksheet
     """
     global old_record_date
     global old_record_time
@@ -843,7 +858,8 @@ def perform_in_flight_analysis():
             cfg.ifa_in_event_of_interest = False
             ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "End of event flow "+str(count_in_flight_analysis))
             ws_row_in_flight_analysis += 2
-            print("EVENT "+str(count_in_flight_analysis)+" TERMINATED")
+            if cfg.quiet < 2:
+                print("EVENT "+str(count_in_flight_analysis)+" TERMINATED")
         return
 
 
@@ -859,7 +875,8 @@ def perform_in_flight_analysis():
 
     # We are now in an event of interest so we log all the events in the deque and set the flag
     count_in_flight_analysis+=1
-    print("EVENT "+str(count_in_flight_analysis)+" COMMENCED")
+    if cfg.quiet < 2:
+        print("EVENT "+str(count_in_flight_analysis)+" COMMENCED")
     ws_in_flight_analysis.write(ws_row_in_flight_analysis, 0, "Start of event flow "+str(count_in_flight_analysis))
     ws_row_in_flight_analysis += 1
 
@@ -983,7 +1000,7 @@ def convert_date(us_date):
 
 def check_for_epoch_year(date):
     """
-        Retirn tru if the date contains the epoch year (usually 1990)
+        Return true if the date contains the epoch year (usually 1990)
     """
     if str(cfg.epoch_year) in date:
       return True
@@ -992,7 +1009,7 @@ def check_for_epoch_year(date):
 
 def write_header(wb, ws, text, loco_number):
     """
-        write the header(s) to an excel worksheet
+        write the header(s) to an Excel worksheet
     """
 
     wb.set_size(1920, 1080)
@@ -1127,12 +1144,12 @@ def hide_suppressed_rows(ws,suppressed_rows):
 
 def process_command_line_args():
     """
-        COmmand line arguments may over-ride the directives in the config file
+        Command line arguments may over-ride the directives in the config file
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--filename',
                         help='if set, this file path over-rides the entry in the configuration file')
-    parser.add_argument('-t', '--ts_adjust',
+    parser.add_argument('-a', '--ts_adjust',
                         help='if set, this value in seconds is applied to the logger clock timestamps to bring them in sync with the real time clock')
     parser.add_argument('-b', '--begin_timestamp',
                         help='if set, filters record by date - should be in the form yyyy/mm/dd hh:mm:ss - end timestamp must also be supplied')
@@ -1144,6 +1161,9 @@ def process_command_line_args():
                         action='store_true')
     parser.add_argument('-n', '--no_suppress_stationary', help='if set, show rows where loco is stationary, TMC=0 and TP is Idle',
                         action='store_true')
+    parser.add_argument('-i','--integer_idle', help='if set, throttle position idle is reported as integer 0', action='store_true' )
+    parser.add_argument('-t','--text_idle', help='if set, throttle position idle is reported as Idle', action='store_true' )
+    parser.add_argument('-q','--quiet', action='count', default=0, help='Modify progress display on console. -q = no page numbers, -qq = no in-flight-analysis counts or page numbers, ')
     args = parser.parse_args()
 
     if args.filename:
@@ -1180,6 +1200,15 @@ def process_command_line_args():
     if args.no_suppress_stationary:
         print("CFG do not suppress stationary loco events")
         cfg.suppress_stationary_events = False
+    if args.integer_idle:
+        print("CFG idle_as_digit over-ridden to report idle as integer")
+        cfg.idle_as_digit = True
+    if args.text_idle:
+        print("CFG idle_as_digit over-ridden to report idle as text")
+        cfg.idle_as_digit = False
+    if args.quiet > 0:
+        print("CFG quiet value of " + str(cfg.quiet) + " over-ridden by CLI switch value "+ str(args.quiet))
+        cfg.quiet=args.quiet
 
 
 if __name__ == '__main__':
