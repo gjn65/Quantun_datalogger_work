@@ -1,12 +1,11 @@
 #!/Library/Frameworks/Python.framework/Versions/3.10/bin/python3.10
 
+
 """
 
 Quantum Desktop Playback - data reporter
 
 This code will parse a text file and create an Excel workbook.
-
-
 The text file is created by running the QDP software, selecting the timescale
 required using tags (or select the entire file) then printing it to a GENERIC/TEXT file
 which must be in landscape format
@@ -183,9 +182,6 @@ March 2023	GJN	Initial Creation
                 -q suppresses page numbers
                 -qq suppresses page numbers and inflight analysis event indications on console
 
-2026/07/14  GJN Add support for epoch reporting. The Excel workbook will contain an extra sheet that records when the
-                RTC reverts to epoch date and when it is reset to the proper time.
-
 -------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -275,8 +271,6 @@ global ws_row_annotations
 global ws_modifiers
 global ws_in_flight_analysis
 global ws_row_in_flight_analysis
-global ws_epoch_report
-global ws_row_epoch_report
 global lalign
 global cell_fill
 global old_record_data
@@ -366,9 +360,6 @@ def main():
     if cfg.suppress_stationary_events:
         hide_suppressed_rows(ws_data_samples,suppressed_rows)
 
-    # This is the end of data - call the epoch tracking code with no date or time
-    # so we can finish off the accounting if required
-    process_epoch_event_tracking(None,None)
 
     print("\nProcessing statistics")
     print("=====================")
@@ -378,12 +369,9 @@ def main():
         print(str(count_in_flight_analysis)+" analysis streams processed")
     print(str(count_suppressed_events) + " stationary loco events suppressed")
     print("")
-    if first_datestamp_written:
-        print("First record written = "+first_datestamp_written[0]+" "+first_datestamp_written[1])
-    if last_datestamp_written:
-        print("Last record written =  "+last_datestamp_written[0]+" "+last_datestamp_written[1])
-    if (last_non_epoch_datestamp_written[0] and last_non_epoch_datestamp_written[1]) and \
-        (last_non_epoch_datestamp_written[0] != last_datestamp_written [0]) and \
+    print("First record written = "+first_datestamp_written[0]+" "+first_datestamp_written[1])
+    print("Last record written =  "+last_datestamp_written[0]+" "+last_datestamp_written[1])
+    if (last_non_epoch_datestamp_written[0] != last_datestamp_written [0]) and \
         (last_non_epoch_datestamp_written[1] != last_datestamp_written[1]):
         print("Last non-epoch record written =  " + last_non_epoch_datestamp_written[0] + " " + last_non_epoch_datestamp_written[1])
 
@@ -496,8 +484,6 @@ def create_workbook():
     global ws_row_annotations
     global ws_modifiers
     global ws_row_modifiers
-    global ws_epoch_report
-    global ws_row_epoch_report
 
     if cfg.in_flight_analysis_enabled:
         global ws_in_flight_analysis
@@ -520,7 +506,7 @@ def create_workbook():
     ws_row_data_samples = write_header(workbook, ws_data_samples, "Data extract from Quantum Data Recorder",
                             "Locomotive " + loco_number + ". Source file " + parts[1])
     ws_row_annotations = write_header_ann(workbook, ws_annotations,
-                        "Logger Events Report", loco_number)
+                        "Data extract from Quantum Data Recorder", loco_number)
     ws_row_modifiers = write_header_modifiers(workbook, ws_modifiers, "Runtime modifiers and events")
     if cfg.filter_dates:
         ws_modifiers.write(ws_row_modifiers, 0,
@@ -571,10 +557,6 @@ def create_workbook():
         ws_modifiers.write(ws_row_modifiers, 0,
                            "Brake system pressures reported in kpa.")
         ws_row_modifiers += 1
-
-    ws_epoch_report = workbook.add_worksheet("Epoch Report")
-    ws_row_epoch_report = write_header_epoch_report(workbook, ws_epoch_report,
-                                          "Epoch Date Events", loco_number)
 
     return
 
@@ -679,10 +661,6 @@ def process_sample(line):
     record_date, record_time = apply_time_adjustment(record_date, record_time)
     old_record_date = record_date
     old_record_time = record_time
-
-    # Pass the record date and time to the epoch tracking function for processing.
-    # Do this prior to any filtering to ensure we track all records
-    process_epoch_event_tracking(record_date,record_time)
 
     # Because the mileage field leading space is lost when the distance goes to 3 figures and
     # extends when it goes to 4 figures, we start at the end of the date field then strip any leading
@@ -1100,24 +1078,6 @@ def write_header_ann(wb, ws, text, loco_number):
     return 3
 
 
-def write_header_epoch_report(wb, ws, text, loco_number):
-    """
-        Write the header row for the annotations worksheet
-    """
-    l_align = wb.add_format({'align': 'left'})
-    ws.set_column('A:B', 15, l_align)
-    ws.set_column('C:C', 50, l_align)
-
-    header_format_epoch_report = wb.add_format({'font_size': 14, 'bold': True})
-    ws.freeze_panes(3, 0)
-    """ Write header line to the worksheet. Return the next row number (0 based) """
-    ws.write(0, 0, text + " : " + loco_number, header_format_epoch_report)
-    ws.write(1, 0, "Event Date", header_format_epoch_report)
-    ws.write(1, 1, "Event Time", header_format_epoch_report)
-    ws.write(1, 2, "Event Type", header_format_epoch_report)
-    return 3
-
-
 def skip_line_found(line):
     """
         Search for existence of skip_list word(s) in the line variable passed into the function.
@@ -1249,83 +1209,6 @@ def process_command_line_args():
     if args.quiet > 0:
         print("CFG quiet value of " + str(cfg.quiet) + " over-ridden by CLI switch value "+ str(args.quiet))
         cfg.quiet=args.quiet
-
-def process_epoch_event_tracking(record_date,record_time):
-    # Initialise variables on 1st call
-    if not hasattr(process_epoch_event_tracking,"epoch_state"):
-        process_epoch_event_tracking.epoch_state = None
-    if not hasattr(process_epoch_event_tracking, "epoch_event_count"):
-        process_epoch_event_tracking.epoch_event_count = 0
-    if not hasattr(process_epoch_event_tracking, "last_record_date"):
-        process_epoch_event_tracking.last_record_date = None
-    if not hasattr(process_epoch_event_tracking, "last_record_time"):
-        process_epoch_event_tracking.last_record_time = None
-
-    # If we are not passed date and time then this is the end of processing
-    # If we end in epoch mode then we need to finalise the accounting of
-    # epoch events for the current stream
-    if not record_date and not record_time:
-        if process_epoch_event_tracking.epoch_state == True:
-            line = "Ending in Epoch state. "+str(process_epoch_event_tracking.epoch_event_count)+" events in epoch period."
-            write_epoch_event("","",line)
-        else:
-            write_epoch_event("","","Ending in non-Epoch state")
-        return
-
-
-    current_record_epoch_state=check_for_epoch_year(record_date)
-    # First record is being read
-    if process_epoch_event_tracking.epoch_state == None:
-        process_epoch_event_tracking.epoch_state = current_record_epoch_state
-        if current_record_epoch_state == True:
-            process_epoch_event_tracking.epoch_event_count += 1
-        process_epoch_event_tracking.last_record_date=record_date
-        process_epoch_event_tracking.last_record_time=record_time
-        # Write record tp report to indicate starting state!
-        line="Starting in "+("EPOCH" if current_record_epoch_state else "Normal")+" state"
-        write_epoch_event(record_date,record_time,line)
-        return
-
-    # We are in susbsequent events now
-
-    # Check for change of epoch state
-    if current_record_epoch_state != process_epoch_event_tracking.epoch_state:
-        if current_record_epoch_state==True:
-            line = "Transitioned to Epoch state"
-            write_epoch_event(record_date, record_time, line)
-            # Going from non-epoch dates to epoch date
-            # Set event counter to 0????
-            # Print record to worksheet - only needs the current record date and time
-            pass
-        else:
-            line = "Transitioned to Normal state. "+str(process_epoch_event_tracking.epoch_event_count)+" events in epoch period."
-            write_epoch_event(record_date, record_time, line)
-
-            # Going from epoch dates to non-epoch date
-            #Print record showing date and time and event counters
-            # Set event counter to zero
-            process_epoch_event_tracking.epoch_event_count=0
-            pass
-
-    process_epoch_event_tracking.epoch_state = current_record_epoch_state
-    process_epoch_event_tracking.last_record_date = record_date
-    process_epoch_event_tracking.last_record_time = record_time
-    # If we have an epoch event, increment the counter
-    if current_record_epoch_state == True:
-        process_epoch_event_tracking.epoch_event_count += 1
-
-    return
-
-def write_epoch_event(date,time,line):
-    global ws_epoch_report
-    global ws_row_epoch_report
-
-    ws_epoch_report.write(ws_row_epoch_report, 0, date)
-    ws_epoch_report.write(ws_row_epoch_report, 1, time)
-    ws_epoch_report.write(ws_row_epoch_report, 2, line)
-    ws_row_epoch_report += 1
-
-    return
 
 
 if __name__ == '__main__':

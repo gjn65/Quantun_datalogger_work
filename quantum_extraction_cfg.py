@@ -1,6 +1,6 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
-source_file = 'input files/JULY2025.prn'
+source_file = 'input files/test.txt'
 #source_file = 'input files/20231119 to 20240721.txt'
 #source_file = 'input files/test_input.txt'
 # source_file='sample1.pdf'
@@ -49,7 +49,7 @@ worksheet_name = "Data Extract"
 # Define the start and end date/times as yyyy/mm/dd hh:mm:ss
 # Only records between these timestamps will be reported.
 # The between_dates flag is set to True to activate this test, or False to ignore it.
-filter_dates = True
+filter_dates = False
 start_timestamp = "2025/07/09 00:00:00"
 end_timestamp = "2025/07/09 23:59:59"
 
