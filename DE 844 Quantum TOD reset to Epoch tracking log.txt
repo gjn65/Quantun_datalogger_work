@@ -1,8 +1,10 @@
-DE 844 Quantim TOD reset to Epoch tracking
+DE 844 Quantum TOD reset to Epoch tracking
 
 
 Instances so far detected
 24/4/2024
 17/7/2024
 2/2/2025
+
+10/7/2026 - reset to epoch on 6/6/2026
 
