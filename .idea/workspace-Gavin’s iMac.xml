@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="ANALYZE_INJECTED_CODE" value="false" />
+    <option name="SCOPE_TYPE" value="3" />
+  </component>
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="7f0248ad-3087-4087-bbd9-47791065cbd7" name="Changes" comment="Implement epoch reporting  page in worksheet">
+      <change beforePath="$PROJECT_DIR$/DE 844 Quantum TOD reset to Epoch tracking log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/DE 844 Quantum TOD reset to Epoch tracking log.txt" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="sandpit" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;gjn65&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/gjn65/Quantun_datalogger_work.git&quot;,
+    &quot;accountId&quot;: &quot;522ff11a-3b6c-4a3c-a8a3-f079695c1d0a&quot;
+  }
+}</component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2Mw9H6nT5lxybB3NZxeeZ5HlRZd" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;Python.quantum pdf extraction.executor&quot;: &quot;Run&quot;,
+    &quot;Python.quantum_extraction_cfg.executor&quot;: &quot;Run&quot;,
+    &quot;Python.quantum_txt_extraction - pre epoch report code - works.executor&quot;: &quot;Run&quot;,
+    &quot;Python.quantum_txt_extraction.executor&quot;: &quot;Run&quot;,
+    &quot;Python.quantum_txt_extraction_with_in_flight_analysis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.quantum_txt_extraction_with_workbook_structure.executor&quot;: &quot;Run&quot;,
+    &quot;Python.reader_test.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/gavinnewman/Library/CloudStorage/OneDrive-Personal/DEV_CODE_local/Python/Quantum datalogger work&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;TEXT&quot;
+    ]
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.quantum_txt_extraction">
+    <configuration name="quantum_txt_extraction" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="Quantum datalogger work" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.10" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/quantum_txt_extraction.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="reader_test" type="PythonConfigurationType" factoryName="Python">
+      <module name="Quantum datalogger work" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="DEBUG_JUST_MY_CODE" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/reader_test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.quantum_txt_extraction" />
+      <item itemvalue="Python.reader_test" />
+    </list>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="7f0248ad-3087-4087-bbd9-47791065cbd7" name="Changes" comment="" />
+      <created>1678667686586</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1678667686586</updated>
+    </task>
+    <task id="LOCAL-00001" summary="Initial test">
+      <created>1678669938603</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1678669938603</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Initial test">
+      <created>1678669985310</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1678669985310</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Speed adjustment done.&#10;Skip list done">
+      <created>1678774955810</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1678774955810</updated>
+    </task>
+    <task id="LOCAL-00004" summary="In progress">
+      <created>1678961288789</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1678961288789</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Working stage&#10;Still need dat filter">
+      <created>1679124281056</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1679124281056</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Working stage&#10;Still need dat filter">
+      <created>1679213200060</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1679213200060</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Date filtering in place.">
+      <created>1679393675201</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1679393675201</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Date filtering in place.">
+      <created>1679523671526</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1679523671526</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Hide unwanted columns&#10;Protect worksheets&#10;Streamline header code and ws writing code">
+      <created>1679792900667</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1679792900667</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Remove protection - cannot filter whilst on.&#10;Add progress bar">
+      <created>1679806493695</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1679806493695</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Fine tune sheet writing code to remove excel number as text warnings etc.&#10;Split annotations across columns">
+      <created>1680172003958</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1680172003958</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Tidied up docstrings (used &quot;&quot;&quot; instead of ''') and cleaned up a few comments to stop lint from bitching...">
+      <created>1682729661197</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1682729661197</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Only print inter-event timings for power related events">
+      <created>1690370688926</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1690370688926</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Added comment re dynamic brake signal">
+      <created>1690546316724</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1690546316724</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Modify digital input write code">
+      <created>1693445045822</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1693445045822</updated>
+    </task>
+    <task id="LOCAL-00029" summary="Change config file name prior to work ontext version. Tidy up directory structure">
+      <option name="closed" value="true" />
+      <created>1720873109545</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1720873109545</updated>
+    </task>
+    <task id="LOCAL-00030" summary="Working on text based code version">
+      <option name="closed" value="true" />
+      <created>1721092104259</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1721092104259</updated>
+    </task>
+    <task id="LOCAL-00031" summary="Working on text based code version&#10;1st cut running OK">
+      <option name="closed" value="true" />
+      <created>1721103553838</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1721103553838</updated>
+    </task>
+    <task id="LOCAL-00032" summary="Working on text based code version&#10;1st cut running OK">
+      <option name="closed" value="true" />
+      <created>1721104334521</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1721104334521</updated>
+    </task>
+    <task id="LOCAL-00033" summary="ADd flag to control writing 1990 records when filtering on dates.">
+      <option name="closed" value="true" />
+      <created>1721212438738</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1721212438738</updated>
+    </task>
+    <task id="LOCAL-00034" summary="ADd flag to control writing 1990 records when filtering on dates.">
+      <option name="closed" value="true" />
+      <created>1721219746611</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1721219746611</updated>
+    </task>
+    <task id="LOCAL-00035" summary="Tested epoch dates within filtered blocks.">
+      <option name="closed" value="true" />
+      <created>1721261874923</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1721261874923</updated>
+    </task>
+    <task id="LOCAL-00036" summary="Change actual wheel diameter definition in configuration file from scalar integer to a dictionary, keyed on the locomotive number">
+      <option name="closed" value="true" />
+      <created>1739403955105</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1739403955106</updated>
+    </task>
+    <task id="LOCAL-00037" summary="Getting ready for inline data analysis code work">
+      <option name="closed" value="true" />
+      <created>1740438770996</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1740438770996</updated>
+    </task>
+    <task id="LOCAL-00038" summary="Working on in flight analysis code">
+      <option name="closed" value="true" />
+      <created>1740469503204</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1740469503204</updated>
+    </task>
+    <task id="LOCAL-00039" summary="In flight analysis code impleted and tested.&#10;Epoch year cells are highlighted in the main data worksheet.">
+      <option name="closed" value="true" />
+      <created>1740619666237</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1740619666237</updated>
+    </task>
+    <task id="LOCAL-00040" summary="In flight analysis code impleted and tested.&#10;Epoch year cells are highlighted in the main data worksheet.">
+      <option name="closed" value="true" />
+      <created>1740619704871</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1740619704871</updated>
+    </task>
+    <task id="LOCAL-00041" summary="In flight analysis code impleted and tested.&#10;Epoch year cells are highlighted in the main data worksheet.">
+      <option name="closed" value="true" />
+      <created>1740620047744</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1740620047744</updated>
+    </task>
+    <task id="LOCAL-00042" summary="In flight analysis code impleted and tested.&#10;Epoch year cells are highlighted in the main data worksheet.">
+      <option name="closed" value="true" />
+      <created>1740642586671</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1740642586671</updated>
+    </task>
+    <task id="LOCAL-00043" summary="If in flight analysis is run, hide irrelevant columns.&#10;Add worksheet protection for all sheets">
+      <option name="closed" value="true" />
+      <created>1741082007391</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1741082007391</updated>
+    </task>
+    <task id="LOCAL-00044" summary="Add sanity checking for flag count as check that the input file was printed with all the data fields">
+      <option name="closed" value="true" />
+      <created>1741220463958</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1741220463958</updated>
+    </task>
+    <task id="LOCAL-00045" summary="Add sanity checking for flag count as check that the input file was printed with all the data fields">
+      <option name="closed" value="true" />
+      <created>1741223606316</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1741223606316</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Add processing statistics to console and modifiers worksheeet">
+      <option name="closed" value="true" />
+      <created>1741232211119</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1741232211119</updated>
+    </task>
+    <task id="LOCAL-00047" summary="Add processing statistics to console and modifiers worksheeet">
+      <option name="closed" value="true" />
+      <created>1741232695672</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1741232695672</updated>
+    </task>
+    <task id="LOCAL-00048" summary="Add processing statistics to console and modifiers worksheeet">
+      <option name="closed" value="true" />
+      <created>1742024354207</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1742024354207</updated>
+    </task>
+    <task id="LOCAL-00049" summary="rename event variables in process in flight analysis to differentiate between the current event and previous events">
+      <option name="closed" value="true" />
+      <created>1742457349230</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1742457349230</updated>
+    </task>
+    <task id="LOCAL-00050" summary="Add code to optionally suppress events where there is no loco speed or traction motor current.&#10;&#10;Fix bug in write_annotations() where the row index was only incremented if the annotation contained the keyword &quot;power&quot;, thus over-writing non-power related annotations - these annotations were still written to the data samples sheet though">
+      <option name="closed" value="true" />
+      <created>1753145329324</created>
+      <option name="number" value="00050" />
+      <option name="presentableId" value="LOCAL-00050" />
+      <option name="project" value="LOCAL" />
+      <updated>1753145329324</updated>
+    </task>
+    <task id="LOCAL-00051" summary="Amend &quot;stationary locomotive&quot; detection code to require the throttle to be in idle as well as speed = 0 and TMC = 0">
+      <option name="closed" value="true" />
+      <created>1753260109652</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1753260109653</updated>
+    </task>
+    <task id="LOCAL-00052" summary="Tidy up global variables definitions">
+      <option name="closed" value="true" />
+      <created>1753571845488</created>
+      <option name="number" value="00052" />
+      <option name="presentableId" value="LOCAL-00052" />
+      <option name="project" value="LOCAL" />
+      <updated>1753571845489</updated>
+    </task>
+    <task id="LOCAL-00053" summary="Add alert when BP pressure transitions from 0 to +ve pressure - indicates compressor startup (and given the hard coupling to the engine - engine startup - which can be correlated back to the log book in cases where the TOD clock is at epoch)&#10;Also when transitioning back to 0 - TP break or emergency application">
+      <option name="closed" value="true" />
+      <created>1753579767898</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1753579767898</updated>
+    </task>
+    <task id="LOCAL-00054" summary="Add alert when BP pressure transitions from 0 to +ve pressure - indicates compressor startup (and given the hard coupling to the engine - engine startup - which can be correlated back to the log book in cases where the TOD clock is at epoch)&#10;Also when transitioning back to 0 - TP break or emergency application">
+      <option name="closed" value="true" />
+      <created>1753580256606</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1753580256606</updated>
+    </task>
+    <task id="LOCAL-00055" summary="Add alert when BP pressure transitions from 0 to +ve pressure - indicates compressor startup (and given the hard coupling to the engine - engine startup - which can be correlated back to the log book in cases where the TOD clock is at epoch)&#10;Also when transitioning back to 0 - TP break or emergency application">
+      <option name="closed" value="true" />
+      <created>1753580308835</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1753580308835</updated>
+    </task>
+    <task id="LOCAL-00056" summary="Add ability to report brake pressures in kpa instead of psi by means of a configuration file switch value">
+      <option name="closed" value="true" />
+      <created>1753753734516</created>
+      <option name="number" value="00056" />
+      <option name="presentableId" value="LOCAL-00056" />
+      <option name="project" value="LOCAL" />
+      <updated>1753753734516</updated>
+    </task>
+    <task id="LOCAL-00057" summary="Add command line argument handling">
+      <option name="closed" value="true" />
+      <created>1754967447305</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1754967447306</updated>
+    </task>
+    <task id="LOCAL-00058" summary="Add command line argument handling">
+      <option name="closed" value="true" />
+      <created>1754967974078</created>
+      <option name="number" value="00058" />
+      <option name="presentableId" value="LOCAL-00058" />
+      <option name="project" value="LOCAL" />
+      <updated>1754967974078</updated>
+    </task>
+    <task id="LOCAL-00059" summary="Add command line argument handling -s -n">
+      <option name="closed" value="true" />
+      <created>1755086228923</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1755086228923</updated>
+    </task>
+    <task id="LOCAL-00060" summary="Add command line argument handling -s -n">
+      <option name="closed" value="true" />
+      <created>1755086300586</created>
+      <option name="number" value="00060" />
+      <option name="presentableId" value="LOCAL-00060" />
+      <option name="project" value="LOCAL" />
+      <updated>1755086300586</updated>
+    </task>
+    <task id="LOCAL-00061" summary="Add flag to record throttle idle position as either &quot;Idle&quot; or numeric 0 in spreadsheet (used for charting)">
+      <option name="closed" value="true" />
+      <created>1761962100349</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1761962100349</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Add command line switches for Idle as integer and to control amount of information displayed during processing">
+      <option name="closed" value="true" />
+      <created>1762043448204</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1762043448204</updated>
+    </task>
+    <option name="localTasksCounter" value="63" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/master" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="&#10;work on reader_test code to experiment with parsing text based output from Quantum printing on W11" />
+    <MESSAGE value="&#10;Start work on text based code version" />
+    <MESSAGE value="Change config file name prior to work ontext version. Tidy up directory structure" />
+    <MESSAGE value="Working on text based code version" />
+    <MESSAGE value="Working on text based code version&#10;1st cut running OK" />
+    <MESSAGE value="ADd flag to control writing 1990 records when filtering on dates." />
+    <MESSAGE value="Tested epoch dates within filtered blocks." />
+    <MESSAGE value="Change actual wheel diameter definition in configuration file from scalar integer to a dictionary, keyed on the locomotive number" />
+    <MESSAGE value="Getting ready for inline data analysis code work" />
+    <MESSAGE value="Working on in flight analysis code" />
+    <MESSAGE value="In flight analysis code impleted and tested.&#10;Epoch year cells are highlighted in the main data worksheet." />
+    <MESSAGE value="If in flight analysis is run, hide irrelevant columns.&#10;Add worksheet protection for all sheets" />
+    <MESSAGE value="Add sanity checking for flag count as check that the input file was printed with all the data fields" />
+    <MESSAGE value="Add processing statistics to console and modifiers worksheeet" />
+    <MESSAGE value="rename event variables in process in flight analysis to differentiate between the current event and previous events" />
+    <MESSAGE value="Add code to optionally suppress events where there is no loco speed or traction motor current.&#10;&#10;Fix bug in write_annotations() where the row index was only incremented if the annotation contained the keyword &quot;power&quot;, thus over-writing non-power related annotations - these annotations were still written to the data samples sheet though" />
+    <MESSAGE value="Amend &quot;stationary locomotive&quot; detection code to require the throttle to be in idle as well as speed = 0 and TMC = 0" />
+    <MESSAGE value="Tidy up global variables definitions" />
+    <MESSAGE value="Add alert when BP pressure transitions from 0 to +ve pressure - indicates compressor startup (and given the hard coupling to the engine - engine startup - which can be correlated back to the log book in cases where the TOD clock is at epoch)&#10;Also when transitioning back to 0 - TP break or emergency application" />
+    <MESSAGE value="Add ability to report brake pressures in kpa instead of psi by means of a configuration file switch value" />
+    <MESSAGE value="Add command line argument handling" />
+    <MESSAGE value="Add command line argument handling -s -n" />
+    <MESSAGE value="Add flag to record throttle idle position as either &quot;Idle&quot; or numeric 0 in spreadsheet (used for charting)" />
+    <MESSAGE value="Add command line switches for Idle as integer and to control amount of information displayed during processing" />
+    <MESSAGE value="Implement epoch reporting  page in worksheet" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implement epoch reporting  page in worksheet" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/reader_test.py</url>
+          <line>28</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/quantum_extraction_cfg.py</url>
+          <line>24</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/quantum_txt_extraction.py</url>
+          <line>1147</line>
+          <option name="timeStamp" value="20" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/quantum_txt_extraction - pre epoch report code - works.py</url>
+          <line>371</line>
+          <option name="timeStamp" value="25" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/quantum_txt_extraction.py</url>
+          <line>575</line>
+          <option name="timeStamp" value="34" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+    <watches-manager>
+      <configuration name="PythonConfigurationType">
+        <watch expression="process_epoch_event_tracking" />
+        <watch expression="last_non_epoch_datestamp_written" />
+      </configuration>
+    </watches-manager>
+  </component>
+</project>
