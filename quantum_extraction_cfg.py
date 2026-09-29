@@ -1,6 +1,6 @@
 # File extracted from Quantum Desktop Software
 # - print to Generic Text file to generate.
-source_file = 'input files/QEI20230223_All_fields.txt'
+source_file = 'input files/844testwith704logger.prn'
 #source_file = 'input files/20231119 to 20240721.txt'
 #source_file = 'input files/test_input.txt'
 # source_file='sample1.pdf'

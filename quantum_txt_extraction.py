@@ -186,6 +186,10 @@ March 2023	GJN	Initial Creation
 2026/07/14  GJN Add support for epoch reporting. The Excel workbook will contain an extra sheet that records when the
                 RTC reverts to epoch date and when it is reset to the proper time.
 
+2026/09/29  GJN Rather than just hiding suppressed rows
+                we assign the hidden rows a level and set a "collapse" state to the annotation row that follows the group
+                of hidden rows, the user will need to enter the protection password to expand a section but having the
+                grouping icon makes it a lot easier.
 
 -------------------------------------------------------------------------------------------------------------------------------
 
@@ -443,7 +447,7 @@ def process_line(line):
         if line[0].isnumeric():  # Data sample lines are the only ones starting with a digit
             process_sample(line)
         else:
-            write_annotation(line,True)
+            write_annotation(line,True,False)
 
         if current_page_number != old_page_number:
             old_page_number=current_page_number
@@ -579,7 +583,7 @@ def create_workbook():
 
     return
 
-def write_annotation(line,write_to_logger_event_sheet):
+def write_annotation(line,write_to_logger_event_sheet,collapse):
     """
         Annotations are text records that contain no loco movement data, they get written to a worksheet in the workbook.
         The code will also add records to this worksheet to record activities of interest
@@ -609,6 +613,10 @@ def write_annotation(line,write_to_logger_event_sheet):
     ws_data_samples.write(ws_row_data_samples, 0, record_date)
     ws_data_samples.write(ws_row_data_samples, 1, record_time)
     ws_data_samples.write(ws_row_data_samples, 2, ' '.join(words[:-2]), lalign)
+
+    # If collapse is true, set this row to be a collapse state - 20260929
+    if collapse:
+        ws_data_samples.set_row(ws_row_data_samples,None,None,{"collapsed": True})
     ws_row_data_samples += 1
 
     if not write_to_logger_event_sheet:  # only write to data samples sheet.
@@ -768,10 +776,10 @@ def process_sample(line):
     else:
         pressure_unit="psi"
     if previous_event_brake_pipe_pressure == 0 and brake_pipe_pressure > 0:     # Compressor start up
-        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+" - compressor start up "+line[time_position:remainder_position],True)
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+" - compressor start up "+line[time_position:remainder_position],True,False)
     #       Transition from non-zero tp 0 - emergency application or brake pipe rupture?
     if previous_event_brake_pipe_pressure > 0  and brake_pipe_pressure == 0:
-        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+". "+line[time_position:remainder_position],True)
+        write_annotation("Brake pipe pressure transitioned from "+str(previous_event_brake_pipe_pressure)+" "+pressure_unit+" to "+str(brake_pipe_pressure)+" "+pressure_unit+". "+line[time_position:remainder_position],True,False)
 
     ##################################################################################################
     # NOTE: Any state change that writes an annotation to the data samples sheet MUST be done prior  #
@@ -780,7 +788,7 @@ def process_sample(line):
     ##################################################################################################
 
     # speed is zero, previous speed was zero, TP - ID(le) and we are suppressing stationary events
-    # don't write this record to the sheet. increment the counter
+    # Write the row number to a list which will be used to hide these rows in due course. increment the counter
     if cfg.suppress_stationary_events and speed==0 and previous_event_speed==0 and tmc==0 and previous_event_tmc==0 and throttle_position=="ID" and previous_throttle_position=="ID":
         if suppressed_stationary_event_count==0:
             first_suppressed_timestamp=record_time
@@ -793,7 +801,7 @@ def process_sample(line):
     # write this record to the sheet after reporting the gap in events...
     if cfg.suppress_stationary_events and (speed!=0 and previous_event_speed==0) or (tmc!=0 and previous_event_tmc==0) or (throttle_position!="ID" and previous_throttle_position=="ID"):
         if suppressed_stationary_event_count!=0:
-            write_annotation("Suppressed "+str(suppressed_stationary_event_count)+" consecutive "+("event" if suppressed_stationary_event_count==1 else "events")+" with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False)
+            write_annotation("Suppressed "+str(suppressed_stationary_event_count)+" consecutive "+("event" if suppressed_stationary_event_count==1 else "events")+" with Speed = 0 kph, TMC = 0 Amps, and Throttle in Idle from "+first_suppressed_timestamp+" to "+last_suppressed_timestamp+" "+line[time_position:remainder_position],False,True)
             count_suppressed_events+=suppressed_stationary_event_count
         suppressed_stationary_event_count=0
 
@@ -1181,7 +1189,9 @@ def hide_suppressed_rows(ws,suppressed_rows):
     if len(suppressed_rows)==0:
         return
     for row in suppressed_rows:
-        ws.set_row(row,None,None,{'hidden':True})
+        #ws.set_row(row,None,None,{'hidden':True})
+        # Hide row and set level for collapsed rows
+        ws.set_row(row,None,None,{'hidden':True, "level": 1})
 
 def process_command_line_args():
     """
