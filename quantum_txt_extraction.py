@@ -191,6 +191,8 @@ March 2023	GJN	Initial Creation
                 of hidden rows, the user will need to enter the protection password to expand a section but having the
                 grouping icon makes it a lot easier.
 
+2026/10/01  GJN Allow the option to protect sheets or not - refer config file setting flag
+
 -------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -408,11 +410,14 @@ def main():
     hide_columns(ws_data_samples, cfg.headers)
     if cfg.in_flight_analysis_enabled:
         hide_columns(ws_in_flight_analysis, cfg.headers)
-    ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
-    ws_annotations.protect(cfg.protect_string,cfg.protection_mode)
-    ws_modifiers.protect(cfg.protect_string,cfg.protection_mode)
-    if cfg.in_flight_analysis_enabled:
-        ws_in_flight_analysis.protect(cfg.protect_string, cfg.protection_mode)
+
+    if cfg.protect_sheet:
+        print("Protection mode is enabled")
+        ws_data_samples.protect(cfg.protect_string,cfg.protection_mode)
+        ws_annotations.protect(cfg.protect_string,cfg.protection_mode)
+        ws_modifiers.protect(cfg.protect_string,cfg.protection_mode)
+        if cfg.in_flight_analysis_enabled:
+            ws_in_flight_analysis.protect(cfg.protect_string, cfg.protection_mode)
     workbook.close()
     print("Written file : " + wb_name)
 

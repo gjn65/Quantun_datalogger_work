@@ -94,6 +94,8 @@ headers = [("Date", True),
 number_of_flags_expected=11
 
 # Worksheet protection string
+# Set to False to remove protection from sheets, True to apply password protection
+protect_sheet = True
 protect_string = "3801"
 protection_mode = {'select_locked_cells': True, "select_unlocked_cells": True, "sort": True, "autofilter": True}
 
